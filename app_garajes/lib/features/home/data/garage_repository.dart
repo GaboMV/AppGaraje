@@ -42,4 +42,26 @@ class GarageRepository {
       throw ApiException.fromDio(e);
     }
   }
+
+  Future<List<GarageModel>> getMyGarages() async {
+    try {
+      final response = await _dio.get(ApiConstants.myGarages);
+      final data = response.data;
+      final list = data is List ? data : (data['garajes'] ?? []);
+      return (list as List)
+          .map((e) => GarageModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<GarageModel> updateGarage(String id, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.put('${ApiConstants.garages}/$id', data: data);
+      return GarageModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 }

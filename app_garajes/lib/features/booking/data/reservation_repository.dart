@@ -78,4 +78,41 @@ class ReservationRepository {
       throw ApiException.fromDio(e);
     }
   }
+
+  Future<List<ReservationModel>> getMyReservations() async {
+    try {
+      final response = await _dio.get(ApiConstants.myReservations);
+      final data = response.data;
+      final list = data is List ? data : (data['reservas'] ?? []);
+      return (list as List)
+          .map((e) => ReservationModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<List<ReservationModel>> getOwnerReservations() async {
+    try {
+      final response = await _dio.get(ApiConstants.ownerReservations);
+      final data = response.data;
+      final list = data is List ? data : (data['reservas'] ?? []);
+      return (list as List)
+          .map((e) => ReservationModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<ReservationModel> getReservationById(String id) async {
+    try {
+      final response = await _dio.get(ApiConstants.reservationById(id));
+      final data = response.data;
+      final reservationJson = data['reserva'] ?? data;
+      return ReservationModel.fromJson(reservationJson as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 }

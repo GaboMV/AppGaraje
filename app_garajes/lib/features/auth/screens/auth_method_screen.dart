@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
@@ -19,7 +21,12 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
   Future<void> _handleGoogleSignIn() async {
     setState(() => _googleLoading = true);
     try {
-      final googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+      final String? clientId = dotenv.env['GOOGLE_CLIENT_ID'];
+      final googleSignIn = GoogleSignIn(
+        clientId: clientId,
+        serverClientId: kIsWeb ? null : clientId,
+        scopes: ['email', 'profile'],
+      );
       final account = await googleSignIn.signIn();
       if (account == null) return;
 
