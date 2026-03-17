@@ -89,6 +89,17 @@ class AuthRepository {
     }
   }
 
+  Future<UserModel> getProfile() async {
+    try {
+      final response = await _dio.get(ApiConstants.userProfile);
+      final data = response.data;
+      final userJson = Map<String, dynamic>.from(data['user']);
+      return UserModel.fromJson(userJson);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   Future<void> logout() async {
     await SecureStorageService.clearAll();
     DioClient.reset();
