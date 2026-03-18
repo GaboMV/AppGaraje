@@ -69,18 +69,31 @@ class _KycScreenState extends ConsumerState<KycScreen> {
     setState(() => _loading = true);
     try {
       final formData = FormData.fromMap({
-        'dni': await MultipartFile.fromFile(_dniFile!.path,
+        'dni_foto': await MultipartFile.fromFile(_dniFile!.path,
             filename: 'dni.jpg'),
         'selfie': await MultipartFile.fromFile(_selfieFile!.path,
             filename: 'selfie.jpg'),
       });
       await DioClient.instance.post(ApiConstants.kyc, data: formData);
       if (mounted) setState(() => _submitted = true);
-    } on ApiException catch (e) {
+    } on DioException catch (e) {
+      if (mounted) {
+        final data = e.response?.data;
+        final msg = (data is Map && data['message'] != null)
+            ? data['message'].toString()
+            : (data is Map && data['error'] != null)
+                ? data['error'].toString()
+                : 'Error al enviar los documentos';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg), backgroundColor: AppTheme.error),
+        );
+      }
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(e.message), backgroundColor: AppTheme.error),
+              content: Text('Error inesperado: $e'),
+              backgroundColor: AppTheme.error),
         );
       }
     } finally {

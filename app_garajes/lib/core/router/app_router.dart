@@ -16,6 +16,11 @@ import '../../features/booking/screens/chat_screen.dart';
 import '../../features/booking/screens/rating_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/kyc_screen.dart';
+import '../../features/profile/screens/my_garages_screen.dart';
+import '../../features/profile/screens/garage_create_wizard.dart';
+import '../../features/profile/screens/garage_edit_screen.dart';
+import '../../features/profile/screens/garage_calendar_screen.dart';
+import '../../features/home/domain/garage_model.dart';
 import '../../features/wallet/screens/wallet_screen.dart';
 
 // Route names
@@ -35,6 +40,10 @@ class AppRoutes {
   static const profile = '/profile';
   static const kyc = '/kyc';
   static const wallet = '/wallet';
+  static const myGarages = '/my-garages';
+  static const garageCreate = '/garage-create';
+  static const garageEdit = '/garage-edit';
+  static const garageCalendar = '/garage-calendar';
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -126,6 +135,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.wallet,
         builder: (ctx, state) => const WalletScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.myGarages,
+        builder: (ctx, state) => const MyGaragesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.garageCreate,
+        builder: (ctx, state) => const GarageCreateWizard(),
+      ),
+      GoRoute(
+        path: AppRoutes.garageEdit,
+        builder: (ctx, state) {
+          final garage = state.extra as GarageModel;
+          return GarageEditScreen(garage: garage);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.garageCalendar,
+        builder: (ctx, state) {
+          final garage = state.extra as GarageModel;
+          return GarageCalendarScreen(garage: garage);
+        },
       ),
     ],
   );

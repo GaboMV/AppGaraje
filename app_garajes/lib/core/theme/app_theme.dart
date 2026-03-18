@@ -91,7 +91,7 @@ class AppTheme {
           hintStyle: const TextStyle(
               fontFamily: 'Poppins', color: textSecondary, fontSize: 14),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           color: surface,
           elevation: 0,
           shape: RoundedRectangleBorder(

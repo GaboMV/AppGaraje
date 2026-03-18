@@ -150,7 +150,7 @@ class ProfileScreen extends ConsumerWidget {
                     icon: Icons.home_work_outlined,
                     label: 'Mis Garajes',
                     subtitle: 'Gestionar espacios publicados',
-                    onTap: () {},
+                    onTap: () => context.push(AppRoutes.myGarages),
                   ),
                   _ProfileOption(
                     icon: Icons.settings_outlined,
