@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/constants/api_constants.dart';
 import '../domain/garage_model.dart';
+import '../domain/create_garage_request.dart';
 
 class GarageRepository {
   final Dio _dio = DioClient.instance;
@@ -59,6 +60,18 @@ class GarageRepository {
   Future<GarageModel> updateGarage(String id, Map<String, dynamic> data) async {
     try {
       final response = await _dio.put('${ApiConstants.garages}/$id', data: data);
+      return GarageModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<GarageModel> createGarage(CreateGarageRequest request) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.garages,
+        data: request.toJson(),
+      );
       return GarageModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
