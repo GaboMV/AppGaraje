@@ -15,16 +15,29 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     _repo = ref.read(authRepositoryProvider);
     // Restore session from storage
     final hasToken = await SecureStorageService.hasToken();
-    if (!hasToken) return null;
+    if (!hasToken) {
+      print('[AuthNotifier] No hay token en storage.');
+      return null;
+    }
 
     final info = await SecureStorageService.getUserInfo();
-    if (info['id'] == null) return null;
+    final String? userId = info['id'];
+    
+    if (userId == null) {
+      print('[AuthNotifier] No se encontró ID de usuario en storage.');
+      return null;
+    }
+
+    print('[AuthNotifier] Restaurando sesión para ID: $userId');
 
     return UserModel(
-      id: info['id']!,
+      id: userId,
       correo: info['email'] ?? '',
       nombreCompleto: info['name'] ?? '',
-      estaVerificado: info['kyc_approved'] == 'true',
+      estaVerificado: info['kyc_approved'] ?? 'NO_VERIFICADO',
+      modoActual: info['modo_actual'],
+      dniFotoUrl: info['dni_foto_url'],
+      selfieUrl: info['selfie_url'],
     );
   }
 
@@ -47,27 +60,45 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     required String correo,
     required String password,
   }) async {
-    state = const AsyncLoading();
     final user = await AsyncValue.guard(() => _repo.login(
           correo: correo,
           password: password,
         ));
+    if (user.hasValue) {
+      print('[AuthNotifier] Login success. Role: ${user.value?.modoActual}');
+    }
     state = user;
     return user.value!;
   }
 
-  Future<UserModel> loginWithGoogle({required String idToken}) async {
+  Future<UserModel> loginWithGoogle({String? idToken, String? accessToken}) async {
     state = const AsyncLoading();
-    final user = await AsyncValue.guard(
-        () => _repo.loginWithGoogle(idToken: idToken));
+    final user = await AsyncValue.guard(() =>
+        _repo.loginWithGoogle(idToken: idToken, accessToken: accessToken));
     state = user;
     return user.value!;
   }
 
   Future<void> refreshProfile() async {
     final result = await AsyncValue.guard(() => _repo.getProfile());
-    if (result.hasValue) {
-      state = AsyncData(result.value);
+    if (result.hasValue && result.value != null) {
+      final user = result.value!;
+      await SecureStorageService.saveUserInfo(
+        id: user.id,
+        name: user.nombreCompleto,
+        email: user.correo,
+        kycApproved: user.estaVerificado,
+        modoActual: user.modoActual,
+        dniFotoUrl: user.dniFotoUrl,
+        selfieUrl: user.selfieUrl,
+      );
+      state = AsyncData(user);
+    } else if (result.hasError) {
+      // Si el perfil falla por 401, cerramos sesión
+      final error = result.error as dynamic;
+      if (error.toString().contains('401') || error.toString().contains('Unauthorized')) {
+        await logout();
+      }
     }
   }
 

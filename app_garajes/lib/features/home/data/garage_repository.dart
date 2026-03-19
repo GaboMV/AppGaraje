@@ -66,11 +66,11 @@ class GarageRepository {
     }
   }
 
-  Future<GarageModel> createGarage(CreateGarageRequest request) async {
+  Future<GarageModel> createGarage(FormData formData) async {
     try {
       final response = await _dio.post(
         ApiConstants.garages,
-        data: request.toJson(),
+        data: formData,
       );
       return GarageModel.fromJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {

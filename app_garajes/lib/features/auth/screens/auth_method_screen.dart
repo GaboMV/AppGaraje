@@ -25,16 +25,23 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
       final googleSignIn = GoogleSignIn(
         clientId: clientId,
         serverClientId: kIsWeb ? null : clientId,
-        scopes: ['email', 'profile'],
+        scopes: ['email', 'profile', 'openid'],
       );
       final account = await googleSignIn.signIn();
       if (account == null) return;
 
       final auth = await account.authentication;
       final idToken = auth.idToken;
-      if (idToken == null) throw Exception('No se obtuvo idToken de Google');
+      final accessToken = auth.accessToken;
 
-      await ref.read(authProvider.notifier).loginWithGoogle(idToken: idToken);
+      if (idToken == null && accessToken == null) {
+        throw Exception('No se obtuvo ningún token de Google');
+      }
+
+      await ref.read(authProvider.notifier).loginWithGoogle(
+            idToken: idToken,
+            accessToken: accessToken,
+          );
       if (mounted) context.go(AppRoutes.modeSelection);
     } catch (e) {
       if (mounted) {

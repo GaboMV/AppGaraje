@@ -176,6 +176,88 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
 
+          // KYC Pending/Review/Rejected Notification
+          if (authState.valueOrNull != null && !authState.valueOrNull!.isVerified)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: authState.valueOrNull!.isRejected 
+                      ? const Color(0xFFFEE2E2) 
+                      : const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: authState.valueOrNull!.isRejected 
+                      ? const Color(0xFFFECACA) 
+                      : const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      authState.valueOrNull!.isRejected
+                          ? Icons.gpp_bad_rounded
+                          : authState.valueOrNull!.isPending
+                              ? Icons.hourglass_empty_rounded
+                              : Icons.verified_user_outlined,
+                      color: authState.valueOrNull!.isRejected 
+                          ? AppTheme.error 
+                          : const Color(0xFFF59E0B),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            authState.valueOrNull!.isRejected
+                                ? 'Verificación Rechazada'
+                                : authState.valueOrNull!.isPending
+                                    ? 'Verificación en Revisión'
+                                    : 'Verificación Pendiente',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                                color: authState.valueOrNull!.isRejected 
+                                    ? AppTheme.error 
+                                    : const Color(0xFFB45309)),
+                          ),
+                          Text(
+                            authState.valueOrNull!.isRejected
+                                ? 'Tu solicitud fue rechazada. Toca para ver el motivo.'
+                                : authState.valueOrNull!.isPending
+                                    ? 'Estamos revisando tus documentos.'
+                                    : 'Debes completar tu KYC para poder reservar.',
+                            style: TextStyle(
+                                fontSize: 11, 
+                                color: (authState.valueOrNull!.isRejected 
+                                    ? AppTheme.error 
+                                    : const Color(0xFFB45309)).withOpacity(0.8)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!authState.valueOrNull!.isPending)
+                      TextButton(
+                        onPressed: () => context.push(AppRoutes.kyc),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          backgroundColor: Colors.white.withOpacity(0.5),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: Text(authState.valueOrNull!.isRejected ? 'Ver' : 'Verificar',
+                            style: const TextStyle(
+                                color: AppTheme.primary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12)),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
           // Map area
           Expanded(
             child: Stack(

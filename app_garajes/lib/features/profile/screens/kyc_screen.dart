@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class KycScreen extends ConsumerStatefulWidget {
   const KycScreen({super.key});
@@ -16,10 +19,25 @@ class KycScreen extends ConsumerStatefulWidget {
 }
 
 class _KycScreenState extends ConsumerState<KycScreen> {
-  File? _dniFile;
-  File? _selfieFile;
+  XFile? _dniXFile;
+  XFile? _selfieXFile;
+  Uint8List? _dniBytes;
+  Uint8List? _selfieBytes;
   bool _loading = false;
   bool _submitted = false;
+  late final TextEditingController _telefonoCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _telefonoCtrl = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _telefonoCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickImage(bool isDni) async {
     final picker = ImagePicker();
@@ -47,18 +65,33 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
     final img = await picker.pickImage(source: source, imageQuality: 85);
     if (img != null && mounted) {
+      // Check size (max 5MB)
+      final bytes = await img.readAsBytes();
+      if (bytes.length > 5 * 1024 * 1024) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('La imagen es demasiado grande (máx. 5MB)'),
+                backgroundColor: AppTheme.error),
+          );
+        }
+        return;
+      }
+
       setState(() {
         if (isDni) {
-          _dniFile = File(img.path);
+          _dniXFile = img;
+          _dniBytes = bytes;
         } else {
-          _selfieFile = File(img.path);
+          _selfieXFile = img;
+          _selfieBytes = bytes;
         }
       });
     }
   }
 
   Future<void> _submit() async {
-    if (_dniFile == null || _selfieFile == null) {
+    if (_dniXFile == null || _selfieXFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Sube ambas fotos para continuar'),
@@ -66,16 +99,34 @@ class _KycScreenState extends ConsumerState<KycScreen> {
       );
       return;
     }
+
+    final telefono = _telefonoCtrl.text.replaceAll(RegExp(r'\s+'), '');
+    if (!RegExp(r"^[67]\d{7}$").hasMatch(telefono)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Número de teléfono inválido (debe empezar con 6 o 7 y tener 8 dígitos)'),
+            backgroundColor: AppTheme.error),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
     try {
       final formData = FormData.fromMap({
-        'dni_foto': await MultipartFile.fromFile(_dniFile!.path,
-            filename: 'dni.jpg'),
-        'selfie': await MultipartFile.fromFile(_selfieFile!.path,
-            filename: 'selfie.jpg'),
+        'telefono': telefono,
+        'dni_foto': kIsWeb
+            ? MultipartFile.fromBytes(_dniBytes!, filename: 'dni.jpg')
+            : await MultipartFile.fromFile(_dniXFile!.path,
+                filename: 'dni.jpg'),
+        'selfie': kIsWeb
+            ? MultipartFile.fromBytes(_selfieBytes!, filename: 'selfie.jpg')
+            : await MultipartFile.fromFile(_selfieXFile!.path,
+                filename: 'selfie.jpg'),
       });
       await DioClient.instance.post(ApiConstants.kyc, data: formData);
       if (mounted) setState(() => _submitted = true);
+      // Refresh profile in background to update global state
+      ref.read(authProvider.notifier).refreshProfile();
     } on DioException catch (e) {
       if (mounted) {
         final data = e.response?.data;
@@ -103,6 +154,21 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authProvider).valueOrNull;
+    final isReviewing = user?.isPending ?? false;
+    final isRejected = user?.isRejected ?? false;
+    final isVerified = user?.isVerified ?? false;
+    
+    // Si ya está verificado, no debería estar aquí, pero por si acaso:
+    if (isVerified) {
+       return Scaffold(
+         appBar: AppBar(title: const Text('Verificación')),
+         body: const Center(child: Text('¡Ya estás verificado!')),
+       );
+    }
+
+    final showStatusOverlay = _submitted || isReviewing || isRejected;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -122,30 +188,32 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryLight,
+                    color: isRejected ? AppTheme.error.withOpacity(0.05) : AppTheme.primaryLight,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                        color: AppTheme.primary.withOpacity(0.3)),
+                        color: isRejected ? AppTheme.error.withOpacity(0.3) : AppTheme.primary.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.shield_outlined,
-                          color: AppTheme.primary, size: 24),
+                      Icon(isRejected ? Icons.warning_amber_rounded : Icons.shield_outlined,
+                          color: isRejected ? AppTheme.error : AppTheme.primary, size: 24),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('¿Por qué necesitamos esto?',
+                            Text(isRejected ? 'Verificación Rechazada' : '¿Por qué necesitamos esto?',
                                 style: TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: AppTheme.primary,
+                                    color: isRejected ? AppTheme.error : AppTheme.primary,
                                     fontSize: 13)),
                             const SizedBox(height: 2),
                             Text(
-                              'La verificación KYC es necesaria para publicar y alquilar espacios en GarageSale.',
+                              isRejected 
+                                ? 'El administrador rechazó tus documentos. Motivo: ${user?.motivoRechazoKyc ?? "Sin motivo especificado"}'
+                                : 'La verificación KYC es necesaria para publicar y alquilar espacios en GarageSale.',
                               style: TextStyle(
-                                  color: AppTheme.primary.withOpacity(0.8),
+                                  color: (isRejected ? AppTheme.error : AppTheme.primary).withOpacity(0.8),
                                   fontSize: 12),
                             ),
                           ],
@@ -156,6 +224,25 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                 ),
                 const SizedBox(height: 28),
 
+                const Text('Teléfono de Contacto',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 15)),
+                const SizedBox(height: 6),
+                Text('Necesitamos tu número para coordinar verificaciones.',
+                    style: TextStyle(
+                        color: AppTheme.textSecondary, fontSize: 13)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _telefonoCtrl,
+                  keyboardType: TextInputType.phone,
+                  enabled: !showStatusOverlay || isRejected,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.phone_android_rounded, color: AppTheme.primary),
+                    hintText: 'Ej. 70012345',
+                  ),
+                ),
+                const SizedBox(height: 24),
+
                 const Text('Foto del DNI',
                     style: TextStyle(
                         fontWeight: FontWeight.w700, fontSize: 15)),
@@ -165,8 +252,8 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                         color: AppTheme.textSecondary, fontSize: 13)),
                 const SizedBox(height: 12),
                 _PhotoUploader(
-                  file: _dniFile,
-                  onTap: () => _pickImage(true),
+                  bytes: _dniBytes,
+                  onTap: (showStatusOverlay && !isRejected) ? () {} : () => _pickImage(true),
                   icon: Icons.badge_outlined,
                   label: 'Subir foto del DNI',
                 ),
@@ -181,8 +268,8 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                         color: AppTheme.textSecondary, fontSize: 13)),
                 const SizedBox(height: 12),
                 _PhotoUploader(
-                  file: _selfieFile,
-                  onTap: () => _pickImage(false),
+                  bytes: _selfieBytes,
+                  onTap: (showStatusOverlay && !isRejected) ? () {} : () => _pickImage(false),
                   icon: Icons.face_outlined,
                   label: 'Tomar selfie con DNI',
                 ),
@@ -190,30 +277,32 @@ class _KycScreenState extends ConsumerState<KycScreen> {
             ),
           ),
 
-          // Submit
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(
-                  24, 12, 24, MediaQuery.of(context).padding.bottom + 12),
-              color: Colors.white,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _submit,
-                child: _loading
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2.5))
-                    : const Text('Enviar para Verificación'),
+          // Submit (Hidden if already submitted/reviewing, but NOT if rejected - let them re-submit)
+          if (!showStatusOverlay || isRejected)
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                padding: EdgeInsets.fromLTRB(
+                    24, 12, 24, MediaQuery.of(context).padding.bottom + 12),
+                color: Colors.white,
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _submit,
+                  style: isRejected ? ElevatedButton.styleFrom(backgroundColor: AppTheme.primary) : null,
+                  child: _loading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2.5))
+                      : Text(isRejected ? 'Re-enviar documentos' : 'Enviar para Verificación'),
+                ),
               ),
             ),
-          ),
 
-          // Success overlay
-          if (_submitted)
+          // Success/Reviewing overlay (NOT for rejected)
+          if (showStatusOverlay && !isRejected)
             Positioned.fill(
               child: Container(
                 color: Colors.white,
@@ -227,18 +316,27 @@ class _KycScreenState extends ConsumerState<KycScreen> {
                         color: AppTheme.primaryLight,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.how_to_reg_rounded,
-                          color: AppTheme.primary, size: 56),
+                      child: Icon(
+                          isReviewing
+                              ? Icons.hourglass_top_rounded
+                              : Icons.how_to_reg_rounded,
+                          color: AppTheme.primary,
+                          size: 56),
                     ),
                     const SizedBox(height: 24),
-                    const Text('¡Documentos enviados!',
-                        style: TextStyle(
+                    Text(
+                        isReviewing
+                            ? 'Documentos en Revisión'
+                            : '¡Documentos enviados!',
+                        style: const TextStyle(
                             fontWeight: FontWeight.w800, fontSize: 24)),
                     const SizedBox(height: 10),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 48),
                       child: Text(
-                        'Revisaremos tu información en las próximas 24 horas. Te notificaremos cuando esté verificado.',
+                        isReviewing
+                            ? 'Estamos revisando tus documentos de identidad. Este proceso suele tardar menos de 24 horas.'
+                            : 'Revisaremos tu información en las próximas 24 horas. Te notificaremos cuando esté verificado.',
                         style: TextStyle(
                             color: AppTheme.textSecondary, fontSize: 14),
                         textAlign: TextAlign.center,
@@ -263,13 +361,13 @@ class _KycScreenState extends ConsumerState<KycScreen> {
 }
 
 class _PhotoUploader extends StatelessWidget {
-  final File? file;
+  final Uint8List? bytes;
   final VoidCallback onTap;
   final IconData icon;
   final String label;
 
   const _PhotoUploader({
-    required this.file,
+    required this.bytes,
     required this.onTap,
     required this.icon,
     required this.label,
@@ -282,22 +380,22 @@ class _PhotoUploader extends StatelessWidget {
           height: 150,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: file != null
+            color: bytes != null
                 ? Colors.transparent
                 : const Color(0xFFF8FAFC),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: file != null ? AppTheme.secondary : AppTheme.border,
-              width: file != null ? 2 : 1,
+              color: bytes != null ? AppTheme.secondary : AppTheme.border,
+              width: bytes != null ? 2 : 1,
               style: BorderStyle.solid,
             ),
           ),
           clipBehavior: Clip.hardEdge,
-          child: file != null
+          child: bytes != null
               ? Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.file(file!, fit: BoxFit.cover),
+                    Image.memory(bytes!, fit: BoxFit.cover),
                     Positioned(
                       top: 8,
                       right: 8,

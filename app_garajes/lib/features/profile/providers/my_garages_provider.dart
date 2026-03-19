@@ -2,19 +2,38 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../home/data/garage_repository.dart';
 import '../../home/domain/garage_model.dart';
 import '../../home/providers/search_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class MyGaragesNotifier extends AsyncNotifier<List<GarageModel>> {
-  late final GarageRepository _repo;
-
   @override
   Future<List<GarageModel>> build() async {
-    _repo = ref.read(garageRepositoryProvider);
-    return _repo.getMyGarages();
+    try {
+      final authState = ref.watch(authProvider);
+      final user = authState.valueOrNull;
+
+      if (user == null || user.modoActual != "PROPIETARIO") {
+        return [];
+      }
+
+      final repo = ref.read(garageRepositoryProvider);
+      final list = await repo.getMyGarages();
+      return list;
+    } catch (e, stack) {
+      print('MyGaragesProvider: [ERROR] $e');
+      return [];
+    }
   }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _repo.getMyGarages());
+    try {
+      final repo = ref.read(garageRepositoryProvider);
+      final list = await repo.getMyGarages();
+      state = AsyncData(list);
+    } catch (e) {
+      print('MyGaragesProvider: [REFRESH ERROR] $e');
+      state = const AsyncData([]);
+    }
   }
 }
 

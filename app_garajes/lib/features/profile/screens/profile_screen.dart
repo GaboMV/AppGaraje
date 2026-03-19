@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../providers/my_garages_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -11,6 +12,15 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).valueOrNull;
+    final myGaragesState = ref.watch(myGaragesProvider);
+
+    print('DEBUG: ProfileScreen - User ID: ${user?.id}');
+    myGaragesState.whenOrNull(data: (list) {
+      print('DEBUG: ProfileScreen - Garages found: ${list.length}');
+      for (var g in list) {
+        print('DEBUG: ProfileScreen - Garage ID: ${g.id}, Aprobado: ${g.estaAprobado}');
+      }
+    });
 
     return Scaffold(
       body: CustomScrollView(
@@ -60,6 +70,12 @@ class ProfileScreen extends ConsumerWidget {
                             fontSize: 18),
                       ),
                       Text(
+                        user?.isPropietario == true ? 'Propietario' : 'Vendedor',
+                        style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 13),
+                      ),
+                      Text(
                         user?.correo ?? '',
                         style: TextStyle(
                             color: Colors.white.withOpacity(0.75),
@@ -80,54 +96,85 @@ class ProfileScreen extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: (user?.estaVerificado ?? false)
+                      color: (user?.isVerified ?? false)
                           ? const Color(0xFFD1FAE5)
-                          : const Color(0xFFFEF3C7),
+                          : (user?.isRejected ?? false)
+                              ? const Color(0xFFFEE2E2)
+                              : (user?.isPending ?? false)
+                                  ? const Color(0xFFFEF3C7)
+                                  : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       children: [
-                        Icon(
-                          (user?.estaVerificado ?? false)
-                              ? Icons.verified_user_rounded
-                              : Icons.verified_user_outlined,
-                          color: (user?.estaVerificado ?? false)
-                              ? AppTheme.secondary
-                              : const Color(0xFFF59E0B),
-                          size: 28,
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: (user?.isVerified ?? false)
+                                ? const Color(0xFF10B981)
+                                : (user?.isRejected ?? false)
+                                    ? AppTheme.error
+                                    : (user?.isPending ?? false)
+                                        ? const Color(0xFFF59E0B)
+                                        : AppTheme.textSecondary.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            (user?.isVerified ?? false)
+                                ? Icons.verified_rounded
+                                : (user?.isRejected ?? false)
+                                    ? Icons.error_outline_rounded
+                                    : (user?.isPending ?? false)
+                                        ? Icons.hourglass_top_rounded
+                                        : Icons.shield_outlined,
+                            color: (user?.isVerified ?? false) ||
+                                    (user?.isRejected ?? false) ||
+                                    (user?.isPending ?? false)
+                                ? Colors.white
+                                : AppTheme.textSecondary,
+                            size: 20,
+                          ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                (user?.estaVerificado ?? false)
+                                (user?.isVerified ?? false)
                                     ? 'Identidad Verificada'
-                                    : 'Verificación Pendiente',
+                                    : (user?.isRejected ?? false)
+                                        ? 'Verificación Rechazada'
+                                        : (user?.isPending ?? false)
+                                            ? 'Verificación en Revisión'
+                                            : 'Verifica tu Identidad',
                                 style: TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: (user?.estaVerificado ?? false)
-                                        ? AppTheme.secondary
-                                        : const Color(0xFFF59E0B)),
+                                    fontSize: 15,
+                                    color: (user?.isVerified ?? false)
+                                        ? const Color(0xFF065F46)
+                                        : (user?.isRejected ?? false)
+                                            ? AppTheme.error
+                                            : (user?.isPending ?? false)
+                                                ? const Color(0xFF92400E)
+                                                : AppTheme.textSecondary),
                               ),
                               Text(
-                                (user?.estaVerificado ?? false)
+                                (user?.isVerified ?? false)
                                     ? 'Puedes publicar y alquilar espacios'
-                                    : 'Completa tu KYC para publicar garajes',
+                                    : (user?.isRejected ?? false)
+                                        ? 'Toca para ver el motivo y re-enviar'
+                                        : (user?.isPending ?? false)
+                                            ? 'Estamos revisando tus documentos'
+                                            : 'Completa tu KYC para publicar garajes',
                                 style: const TextStyle(fontSize: 12),
                               ),
                             ],
                           ),
                         ),
-                        if (!(user?.estaVerificado ?? false))
-                          TextButton(
-                            onPressed: () => context.push(AppRoutes.kyc),
-                            child: const Text('Verificar',
-                                style: TextStyle(
-                                    color: AppTheme.primary,
-                                    fontWeight: FontWeight.w700)),
-                          ),
+                        if (!(user?.isVerified ?? false))
+                          const Icon(Icons.arrow_forward_ios_rounded,
+                              size: 14, color: AppTheme.textSecondary),
                       ],
                     ),
                   ),
@@ -146,12 +193,66 @@ class ProfileScreen extends ConsumerWidget {
                     subtitle: 'Historial de reservas',
                     onTap: () {},
                   ),
-                  _ProfileOption(
-                    icon: Icons.home_work_outlined,
-                    label: 'Mis Garajes',
-                    subtitle: 'Gestionar espacios publicados',
-                    onTap: () => context.push(AppRoutes.myGarages),
-                  ),
+                  
+                  // Multi-pestaña: Mis Garajes / Quiero Alquilar
+                  if (user?.isPropietario == true || user?.isCustomer == true)
+                     myGaragesState.when(
+                      data: (garages) {
+                        // REGLA DE ORO: Si es PROPIETARIO, mostramos "Mis Garajes" siempre.
+                        if (user?.isPropietario == true) {
+                          bool todosPendientes = garages.isNotEmpty && garages.every((g) => g.estaAprobado == false);
+                          
+                          if (todosPendientes) {
+                            return _ProfileOption(
+                              icon: Icons.pending_actions_rounded,
+                              label: 'Solicitud en atención',
+                              subtitle: 'Tu espacio está siendo validado',
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Tu solicitud está siendo atendida por un administrador.')),
+                                );
+                              },
+                            );
+                          } else {
+                            return _ProfileOption(
+                              icon: Icons.home_work_outlined,
+                              label: 'Mis Garajes',
+                              subtitle: garages.isEmpty ? 'Cargando tus espacios...' : 'Gestionar ${garages.length} espacios',
+                              onTap: () => context.push(AppRoutes.myGarages),
+                            );
+                          }
+                        }
+
+                        // REGLA PARA VENDEDORES (CLIENTES): Mostrar el CTA para registrarse
+                        return _ProfileOption(
+                          icon: Icons.add_business_rounded,
+                          label: 'Quiero alquilar mi espacio',
+                          subtitle: 'Publica tu primer garaje aquí',
+                          onTap: () {
+                            if (user?.isVerified == true) {
+                              context.push(AppRoutes.garageCreate);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Debes verificar tu identidad (KYC) primero.')),
+                              );
+                            }
+                          },
+                        );
+                      },
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      error: (err, _) => _ProfileOption(
+                        icon: Icons.error_outline_rounded,
+                        label: 'Mis Garajes',
+                        subtitle: 'Error al cargar datos',
+                        onTap: () => ref.read(myGaragesProvider.notifier).refresh(),
+                      ),
+                    ),
+
                   _ProfileOption(
                     icon: Icons.settings_outlined,
                     label: 'Configuración',

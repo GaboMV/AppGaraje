@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/domain/user_model.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../home/providers/search_provider.dart';
 import '../providers/reservation_provider.dart';
 
@@ -103,6 +105,12 @@ class _BookingRequestScreenState
       return;
     }
 
+    final user = ref.read(authProvider).valueOrNull;
+    if (user != null && !user.isVerified) {
+      _showKycRequiredDialog(user.isPending, user.isRejected);
+      return;
+    }
+
     final garage = ref.read(selectedGarageProvider);
     if (garage == null) return;
 
@@ -135,6 +143,57 @@ class _BookingRequestScreenState
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _showKycRequiredDialog(bool isPending, bool isRejected) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(
+              isRejected ? Icons.gpp_bad_rounded : Icons.verified_user_outlined,
+              color: isRejected ? AppTheme.error : AppTheme.primary,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              isRejected ? 'Verificación Rechazada' : (isPending ? 'Verificación en curso' : 'Verificación requerida'),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        content: Text(
+          isRejected
+              ? 'Tu verificación previa fue rechazada. Por favor, revisa el motivo en tu perfil y vuelve a subir tus documentos.'
+              : (isPending
+                  ? 'Estamos revisando tus documentos. Podrás reservar en cuanto el administrador los apruebe.'
+                  : 'Para poder reservar un espacio, primero debemos verificar tu identidad. Esto ayuda a mantener la comunidad segura.'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cerrar',
+                style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          if (!isPending)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                context.push(AppRoutes.kyc);
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                backgroundColor: AppTheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text(isRejected ? 'Ver motivo' : 'Verificar ahora'),
+            ),
+        ],
+      ),
+    );
   }
 
   @override

@@ -30,16 +30,16 @@ class DioClient {
         onRequest: (options, handler) async {
           final token = await SecureStorageService.getToken();
           if (token != null) {
+            print('[DioClient] Injectando Token: ${token.substring(0, 10)}... en ${options.path}');
             options.headers['Authorization'] = 'Bearer $token';
+          } else {
+            print('[DioClient] NO se encontró Token para ${options.path}');
           }
           return handler.next(options);
         },
         onError: (DioException e, handler) {
-          if (kDebugMode) {
-            print('[DioClient] Error: ${e.response?.statusCode} '
-                '${e.requestOptions.path}');
-            print('[DioClient] Data: ${e.response?.data}');
-          }
+          print('[DioClient] ERROR en ${e.requestOptions.path}: ${e.response?.statusCode}');
+          print('[DioClient] Respuesta: ${e.response?.data}');
           return handler.next(e);
         },
       ),
