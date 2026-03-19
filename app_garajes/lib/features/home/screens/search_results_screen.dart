@@ -356,7 +356,7 @@ class _EmptyState extends StatelessWidget {
             Icon(Icons.search_off_rounded,
                 size: 60, color: AppTheme.textSecondary.withOpacity(0.4)),
             const SizedBox(height: 12),
-            const Text('No hay garajes disponibles',
+            const Text('No hay espacios disponibles cerca de ti',
                 style: TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 16)),
             const SizedBox(height: 6),

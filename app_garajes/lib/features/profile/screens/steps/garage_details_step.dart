@@ -1,5 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' as io;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -19,6 +20,7 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
   late final TextEditingController _descCtrl;
   final ImagePicker _picker = ImagePicker();
   List<String> _imagePaths = [];
+  String? _documentoPath;
 
   @override
   void initState() {
@@ -27,6 +29,7 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
     _nombreCtrl = TextEditingController(text: state.nombre);
     _descCtrl = TextEditingController(text: state.descripcion);
     _imagePaths = List.from(state.imagenesLocales);
+    _documentoPath = state.documentoPropiedadLocal;
   }
 
   @override
@@ -53,6 +56,14 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
     }
   }
 
+  Future<void> _pickDocument() async {
+    final picked = await _picker.pickImage(
+        source: ImageSource.gallery, imageQuality: 85);
+    if (picked != null && mounted) {
+      setState(() => _documentoPath = picked.path);
+    }
+  }
+
   void _removeImage(int index) {
     setState(() => _imagePaths.removeAt(index));
   }
@@ -68,10 +79,30 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
       );
       return;
     }
+    if (_documentoPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El documento de propiedad es obligatorio'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    if (_imagePaths.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sube al menos 3 fotos estéticas del garaje'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    
     ref.read(garageCreateProvider.notifier).setDetails(
           nombre: nombre,
           descripcion: _descCtrl.text.trim(),
           imagenes: _imagePaths,
+          documentoPropiedad: _documentoPath,
         );
     widget.onNext();
   }
@@ -166,7 +197,61 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
+
+          // Documento Legal
+          const _Label('Documento de Propiedad'),
+          const SizedBox(height: 4),
+          const Text(
+            'Sube una foto del título de propiedad, factura de luz a tu nombre, o contrato de alquiler que certifique tu potestad sobre el espacio. Este documento es PRIVADO y solo el administrador lo verá para aprobar tu garaje.',
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: _pickDocument,
+            child: Container(
+              height: 120,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: _documentoPath != null ? Colors.transparent : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: _documentoPath != null ? AppTheme.secondary : AppTheme.border,
+                  width: _documentoPath != null ? 2 : 1,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              clipBehavior: Clip.hardEdge,
+              child: _documentoPath != null
+                  ? Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        kIsWeb
+                            ? Image.network(_documentoPath!, fit: BoxFit.cover)
+                            : Image.file(io.File(_documentoPath!), fit: BoxFit.cover),
+                        Positioned(
+                          top: 8, right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(color: AppTheme.secondary, shape: BoxShape.circle),
+                            child: const Icon(Icons.check_rounded, color: Colors.white, size: 16),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.description_outlined, size: 36, color: AppTheme.textSecondary),
+                        SizedBox(height: 8),
+                        Text('Subir Documento', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+                        SizedBox(height: 4),
+                        Text('Toca para seleccionar foto/pdf', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      ],
+                    ),
+            ),
+          ),
+          const SizedBox(height: 32),
 
           ElevatedButton.icon(
             onPressed: _save,
@@ -228,12 +313,19 @@ class _ImageGrid extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.file(
-                File(e.value),
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              ),
+              child: kIsWeb
+                  ? Image.network(
+                      e.value,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    )
+                  : Image.file(
+                      io.File(e.value),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
             ),
             Positioned(
               top: -6,

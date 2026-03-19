@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
@@ -19,6 +22,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passCtrl = TextEditingController();
   bool _showPass = false;
   bool _loading = false;
+  bool _googleLoading = false;
 
   @override
   void dispose() {
@@ -45,6 +49,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _googleLoading = true);
+    try {
+      final String? clientId = dotenv.env['GOOGLE_CLIENT_ID'];
+      final googleSignIn = GoogleSignIn(
+        clientId: clientId,
+        serverClientId: kIsWeb ? null : clientId,
+        scopes: ['email', 'profile', 'openid'],
+      );
+      final account = await googleSignIn.signIn();
+      if (account == null) return;
+
+      final auth = await account.authentication;
+      final idToken = auth.idToken;
+      final accessToken = auth.accessToken;
+
+      if (idToken == null && accessToken == null) {
+        throw Exception('No se obtuvo ningún token de Google');
+      }
+
+      await ref.read(authProvider.notifier).loginWithGoogle(
+            idToken: idToken,
+            accessToken: accessToken,
+          );
+      if (mounted) context.go(AppRoutes.modeSelection);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
     }
   }
 
@@ -135,6 +178,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               )
                             : const Text('Iniciar Sesión'),
                       ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text('o continúa con',
+                                style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 13)),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _SocialButton(
+                        onTap: _handleGoogleSignIn,
+                        loading: _googleLoading,
+                        icon: const Icon(Icons.g_mobiledata_rounded,
+                            size: 28, color: Color(0xFF4285F4)),
+                        label: 'Continuar con Google',
+                        border: true,
+                      ),
                       const SizedBox(height: 20),
                       Center(
                         child: GestureDetector(
@@ -181,4 +247,55 @@ class _Label extends StatelessWidget {
                 fontSize: 13,
                 color: AppTheme.textPrimary)),
       );
+}
+
+class _SocialButton extends StatelessWidget {
+  final VoidCallback? onTap;
+  final bool loading;
+  final Widget icon;
+  final String label;
+  final bool border;
+
+  const _SocialButton({
+    required this.onTap,
+    required this.icon,
+    required this.label,
+    this.loading = false,
+    this.border = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 54,
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: loading ? null : onTap,
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppTheme.border),
+          foregroundColor: AppTheme.textPrimary,
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: loading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  icon,
+                  const SizedBox(width: 10),
+                  Text(label,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 15)),
+                ],
+              ),
+      ),
+    );
+  }
 }

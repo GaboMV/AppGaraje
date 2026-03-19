@@ -25,7 +25,7 @@ class MyGaragesScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
             Text(
-              'Mis Garajes',
+              'Mis Garajes [V3]',
               style: TextStyle(
                   fontWeight: FontWeight.w800, fontSize: 18),
             ),

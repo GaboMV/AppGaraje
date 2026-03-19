@@ -30,6 +30,9 @@ class AuthRepository {
         name: user.nombreCompleto,
         email: user.correo,
         kycApproved: user.estaVerificado,
+        modoActual: user.modoActual,
+        dniFotoUrl: user.dniFotoUrl,
+        selfieUrl: user.selfieUrl,
       );
       return user;
     } on DioException catch (e) {
@@ -49,15 +52,20 @@ class AuthRepository {
       final data = response.data;
       final token = data['token'];
       final userJson = Map<String, dynamic>.from(data['user']);
+      print('[AuthRepo] DEBUG: User JSON from server: $userJson');
       userJson['token'] = token;
 
       final user = UserModel.fromJson(userJson);
+      print('[AuthRepo] DEBUG: Mapped mode: ${user.modoActual}');
       await SecureStorageService.saveToken(token);
       await SecureStorageService.saveUserInfo(
         id: user.id,
         name: user.nombreCompleto,
         email: user.correo,
         kycApproved: user.estaVerificado,
+        modoActual: user.modoActual,
+        dniFotoUrl: user.dniFotoUrl,
+        selfieUrl: user.selfieUrl,
       );
       return user;
     } on DioException catch (e) {
@@ -65,10 +73,11 @@ class AuthRepository {
     }
   }
 
-  Future<UserModel> loginWithGoogle({required String idToken}) async {
+  Future<UserModel> loginWithGoogle({String? idToken, String? accessToken}) async {
     try {
       final response = await _dio.post(ApiConstants.googleAuth, data: {
-        'idToken': idToken,
+        if (idToken != null) 'idToken': idToken,
+        if (accessToken != null) 'accessToken': accessToken,
       });
       final data = response.data;
       final token = data['token'];
@@ -82,6 +91,9 @@ class AuthRepository {
         name: user.nombreCompleto,
         email: user.correo,
         kycApproved: user.estaVerificado,
+        modoActual: user.modoActual,
+        dniFotoUrl: user.dniFotoUrl,
+        selfieUrl: user.selfieUrl,
       );
       return user;
     } on DioException catch (e) {
