@@ -12,6 +12,9 @@ class GarageRepository {
     String? horaInicio,
     String? horaFin,
     String? ubicacion,
+    double? lat,
+    double? lng,
+    double? radius,
   }) async {
     try {
       final Map<String, dynamic> queryParams = {};
@@ -19,6 +22,9 @@ class GarageRepository {
       if (horaInicio != null) queryParams['hora_inicio'] = horaInicio;
       if (horaFin != null) queryParams['hora_fin'] = horaFin;
       if (ubicacion != null) queryParams['ubicacion'] = ubicacion;
+      if (lat != null) queryParams['lat'] = lat;
+      if (lng != null) queryParams['lng'] = lng;
+      if (radius != null) queryParams['radio'] = radius;
 
       final response = await _dio.get(
         ApiConstants.search,

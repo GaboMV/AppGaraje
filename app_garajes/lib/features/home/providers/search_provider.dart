@@ -11,12 +11,18 @@ class SearchFilters {
   final String? horaInicio;
   final String? horaFin;
   final String? ubicacion;
+  final double? lat;
+  final double? lng;
+  final double? radius;
 
   const SearchFilters({
     this.fecha,
     this.horaInicio,
     this.horaFin,
     this.ubicacion,
+    this.lat,
+    this.lng,
+    this.radius,
   });
 
   SearchFilters copyWith({
@@ -24,16 +30,25 @@ class SearchFilters {
     String? horaInicio,
     String? horaFin,
     String? ubicacion,
+    double? lat,
+    double? lng,
+    double? radius,
   }) =>
       SearchFilters(
         fecha: fecha ?? this.fecha,
         horaInicio: horaInicio ?? this.horaInicio,
         horaFin: horaFin ?? this.horaFin,
         ubicacion: ubicacion ?? this.ubicacion,
+        lat: lat ?? this.lat,
+        lng: lng ?? this.lng,
+        radius: radius ?? this.radius,
       );
 
   bool get hasFilters =>
-      fecha != null || horaInicio != null || horaFin != null;
+      fecha != null ||
+      horaInicio != null ||
+      horaFin != null ||
+      (lat != null && lng != null);
 }
 
 // Garage list provider (auto-fetches)
@@ -53,11 +68,16 @@ class SearchNotifier extends AsyncNotifier<List<GarageModel>> {
       horaInicio: _filters.horaInicio,
       horaFin: _filters.horaFin,
       ubicacion: _filters.ubicacion,
+      lat: _filters.lat,
+      lng: _filters.lng,
+      radius: _filters.radius,
     );
   }
 
   Future<void> applyFilters(SearchFilters filters) async {
     _filters = filters;
+    // Update the state provider to keep it in sync with the current search
+    ref.read(searchFiltersProvider.notifier).state = filters;
     state = const AsyncLoading();
     state = await AsyncValue.guard(_fetchGarages);
   }

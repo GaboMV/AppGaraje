@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:async';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -20,6 +21,34 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final MapController _mapController = MapController();
   int _selectedNav = 0;
+  Timer? _debounceTimer;
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  void _onMapChanged(MapCamera camera, bool hasGesture) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
+
+      final center = camera.center;
+      final bounds = camera.visibleBounds;
+      const distance = Distance();
+      final radius = distance.as(LengthUnit.Kilometer, center, bounds.northEast);
+
+      ref.read(searchProvider.notifier).applyFilters(
+            ref.read(searchFiltersProvider).copyWith(
+                  lat: center.latitude,
+                  lng: center.longitude,
+                  radius: radius,
+                ),
+          );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,9 +62,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
 
     final locationState = ref.watch(locationProvider);
-    final initialCenter = locationState.position != null
-        ? LatLng(locationState.position!.latitude, locationState.position!.longitude)
-        : const LatLng(-12.0464, -77.0428);
+    final filters = ref.watch(searchFiltersProvider);
+    final initialCenter = filters.lat != null && filters.lng != null
+        ? LatLng(filters.lat!, filters.lng!)
+        : (locationState.position != null
+            ? LatLng(locationState.position!.latitude,
+                locationState.position!.longitude)
+            : const LatLng(-12.0464, -77.0428));
 
     final authState = ref.watch(authProvider);
     final userName = authState.valueOrNull?.nombreCompleto.split(' ').first ?? 'Usuario';
@@ -283,6 +316,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   options: MapOptions(
                     initialCenter: initialCenter,
                     initialZoom: 13,
+                    onPositionChanged: _onMapChanged,
                   ),
                   children: [
                     TileLayer(
