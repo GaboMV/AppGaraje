@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../domain/garage_model.dart';
 import '../providers/search_provider.dart';
+import '../../../core/providers/location_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -22,6 +23,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<LocationState>(locationProvider, (previous, next) {
+      if (previous?.position == null && next.position != null) {
+        _mapController.move(
+          LatLng(next.position!.latitude, next.position!.longitude),
+          13.0,
+        );
+      }
+    });
+
+    final locationState = ref.watch(locationProvider);
+    final initialCenter = locationState.position != null
+        ? LatLng(locationState.position!.latitude, locationState.position!.longitude)
+        : const LatLng(-12.0464, -77.0428);
+
     final authState = ref.watch(authProvider);
     final userName = authState.valueOrNull?.nombreCompleto.split(' ').first ?? 'Usuario';
     final searchAsync = ref.watch(searchProvider);
@@ -265,8 +280,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 // Flutter Map with OpenStreetMap
                 FlutterMap(
                   mapController: _mapController,
-                  options: const MapOptions(
-                    initialCenter: LatLng(-12.0464, -77.0428), // Lima, Peru
+                  options: MapOptions(
+                    initialCenter: initialCenter,
                     initialZoom: 13,
                   ),
                   children: [
@@ -338,6 +353,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onSelect: (i) {
               setState(() => _selectedNav = i);
               if (i == 4) context.push(AppRoutes.profile);
+              if (i == 3) context.push(AppRoutes.myReservations);
               if (i == 2) context.push(AppRoutes.wallet);
             },
           ),

@@ -25,6 +25,7 @@ class ReservationNotifier
     required String horaInicio,
     required String horaFin,
     required String mensaje,
+    required bool aceptaTerminos,
     List<String> serviciosIds = const [],
   }) async {
     state = const AsyncLoading();
@@ -34,6 +35,7 @@ class ReservationNotifier
           horaInicio: horaInicio,
           horaFin: horaFin,
           mensaje: mensaje,
+          aceptaTerminos: aceptaTerminos,
           serviciosIds: serviciosIds,
         ));
     state = result;
@@ -74,8 +76,40 @@ class ReservationNotifier
       return state.value;
     });
   }
+
+  Future<void> approveReservation(String id) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _repo.approveReservation(id);
+      ref.invalidate(ownerReservationsProvider);
+      return state.value;
+    });
+  }
+
+  Future<void> rejectReservation(String id) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await _repo.rejectReservation(id);
+      ref.invalidate(ownerReservationsProvider);
+      ref.invalidate(myReservationsProvider);
+      return state.value;
+    });
+  }
 }
 
 final reservationProvider =
     AsyncNotifierProvider<ReservationNotifier, ReservationModel?>(
         ReservationNotifier.new);
+
+final myReservationsProvider = FutureProvider<List<ReservationModel>>((ref) {
+  return ref.watch(reservationRepositoryProvider).getMyReservations();
+});
+
+final ownerReservationsProvider = FutureProvider<List<ReservationModel>>((ref) {
+  return ref.watch(reservationRepositoryProvider).getOwnerReservations();
+});
+
+final reservationDetailsProvider =
+    FutureProvider.family<ReservationModel, String>((ref, id) {
+  return ref.watch(reservationRepositoryProvider).getReservationById(id);
+});

@@ -191,7 +191,7 @@ class ProfileScreen extends ConsumerWidget {
                     icon: Icons.book_online_outlined,
                     label: 'Mis Reservas',
                     subtitle: 'Historial de reservas',
-                    onTap: () {},
+                    onTap: () => context.push(AppRoutes.myReservations),
                   ),
                   
                   // Multi-pestaña: Mis Garajes / Quiero Alquilar

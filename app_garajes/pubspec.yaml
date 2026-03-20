@@ -49,6 +49,7 @@ dependencies:
 
   # Dotenv (API URL)
   flutter_dotenv: ^5.2.1
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

@@ -31,6 +31,8 @@ class ApiConstants {
   static const String ownerReservations = '/api/reservations/owner';
   static String payReservation(String id) => '/api/reservations/$id/pagar';
   static String reservationById(String id) => '/api/reservations/$id';
+  static String approveReservation(String id) => '/api/reservations/$id/approve';
+  static String rejectReservation(String id) => '/api/reservations/$id/reject';
 
   // Operations
   static String checkIn(String id) => '/api/operations/$id/check-in';

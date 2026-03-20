@@ -23,6 +23,7 @@ class _BookingRequestScreenState
   DateTime? _fecha;
   TimeOfDay? _horaInicio;
   TimeOfDay? _horaFin;
+  bool _aceptaTerminos = false;
   bool _loading = false;
 
   @override
@@ -105,6 +106,16 @@ class _BookingRequestScreenState
       return;
     }
 
+    if (!_aceptaTerminos) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Debes aceptar los Términos y Condiciones'),
+            backgroundColor: AppTheme.error),
+      );
+      return;
+    }
+
+
     final user = ref.read(authProvider).valueOrNull;
     if (user != null && !user.isVerified) {
       _showKycRequiredDialog(user.isPending, user.isRejected);
@@ -125,6 +136,7 @@ class _BookingRequestScreenState
                 horaInicio: _formatTime(_horaInicio!),
                 horaFin: _formatTime(_horaFin!),
                 mensaje: _msgCtrl.text.trim(),
+                aceptaTerminos: _aceptaTerminos,
                 serviciosIds:
                     selectedServices.map((s) => s.id).toList(),
               );
@@ -455,6 +467,35 @@ class _BookingRequestScreenState
                         ),
                       ],
                     ),
+                    const SizedBox(height: 24),
+
+                    // Terms Compliance
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: Checkbox(
+                            value: _aceptaTerminos,
+                            onChanged: (v) =>
+                                setState(() => _aceptaTerminos = v ?? false),
+                            activeColor: AppTheme.primary,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(4)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'He leído y acepto los Términos y Condiciones del servicio',
+                            style: TextStyle(
+                                fontSize: 13,
+                                color: AppTheme.textPrimary),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -462,6 +503,7 @@ class _BookingRequestScreenState
           ],
         ),
       ),
+
 
       // Footer
       bottomSheet: Container(
