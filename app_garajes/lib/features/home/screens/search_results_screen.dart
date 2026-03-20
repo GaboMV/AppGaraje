@@ -10,12 +10,26 @@ import '../../../core/theme/app_theme.dart';
 import '../domain/garage_model.dart';
 import '../providers/search_provider.dart';
 
-class SearchResultsScreen extends ConsumerWidget {
+class SearchResultsScreen extends ConsumerStatefulWidget {
   const SearchResultsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SearchResultsScreen> createState() => _SearchResultsScreenState();
+}
+
+class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
+  final MapController _mapController = MapController();
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final searchAsync = ref.watch(searchProvider);
+    final filters = ref.watch(searchFiltersProvider);
 
     return Scaffold(
       body: Stack(
@@ -24,8 +38,11 @@ class SearchResultsScreen extends ConsumerWidget {
           SizedBox(
             height: MediaQuery.of(context).size.height * 0.45,
             child: FlutterMap(
-              options: const MapOptions(
-                initialCenter: LatLng(-12.0464, -77.0428),
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: filters.lat != null && filters.lng != null
+                    ? LatLng(filters.lat!, filters.lng!)
+                    : const LatLng(-12.0464, -77.0428),
                 initialZoom: 13,
               ),
               children: [
@@ -34,6 +51,38 @@ class SearchResultsScreen extends ConsumerWidget {
                       'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   userAgentPackageName: 'com.example.app_garajes',
                 ),
+                searchAsync.whenOrNull(
+                  data: (garages) => MarkerLayer(
+                    markers: garages
+                        .where((g) => g.latitud != 0 && g.longitud != 0)
+                        .map((g) => Marker(
+                              point: LatLng(g.latitud, g.longitud),
+                              width: 60,
+                              height: 30,
+                              child: GestureDetector(
+                                onTap: () {
+                                  _mapController.move(LatLng(g.latitud, g.longitud), 15);
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '\$${g.precioPorHora.toStringAsFixed(0)}',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ) ?? const MarkerLayer(markers: []),
               ],
             ),
           ),
@@ -166,6 +215,12 @@ class SearchResultsScreen extends ConsumerWidget {
                               itemBuilder: (_, i) => _GarageCard(
                                 garage: garages[i],
                                 onTap: () {
+                                  _mapController.move(
+                                      LatLng(garages[i].latitud,
+                                          garages[i].longitud),
+                                      15);
+                                },
+                                onDoubleTap: () {
                                   ref
                                       .read(selectedGarageProvider.notifier)
                                       .state = garages[i];
@@ -207,12 +262,18 @@ class SearchResultsScreen extends ConsumerWidget {
 class _GarageCard extends StatelessWidget {
   final GarageModel garage;
   final VoidCallback onTap;
-  const _GarageCard({required this.garage, required this.onTap});
+  final VoidCallback? onDoubleTap;
+  const _GarageCard({
+    required this.garage, 
+    required this.onTap,
+    this.onDoubleTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onDoubleTap: onDoubleTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
