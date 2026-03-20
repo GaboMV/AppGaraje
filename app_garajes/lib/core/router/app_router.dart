@@ -14,6 +14,8 @@ import '../../features/home/screens/garage_details_screen.dart';
 import '../../features/booking/screens/booking_request_screen.dart';
 import '../../features/booking/screens/chat_screen.dart';
 import '../../features/booking/screens/rating_screen.dart';
+import '../../features/booking/screens/my_reservations_screen.dart';
+import '../../features/booking/screens/reservation_details_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/kyc_screen.dart';
 import '../../features/profile/screens/my_garages_screen.dart';
@@ -37,6 +39,8 @@ class AppRoutes {
   static const bookingRequest = '/booking-request';
   static const chat = '/chat/:reservationId';
   static const rating = '/rating/:reservationId';
+  static const myReservations = '/my-reservations';
+  static const reservationById = '/reservations/:id';
   static const profile = '/profile';
   static const kyc = '/kyc';
   static const wallet = '/wallet';
@@ -122,6 +126,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (ctx, state) {
           final reservationId = state.pathParameters['reservationId']!;
           return RatingScreen(reservationId: reservationId);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.myReservations,
+        builder: (ctx, state) => const MyReservationsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.reservationById,
+        builder: (ctx, state) {
+          final id = state.pathParameters['id']!;
+          return ReservationDetailsScreen(reservationId: id);
         },
       ),
       GoRoute(

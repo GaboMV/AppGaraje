@@ -12,16 +12,17 @@ class ReservationRepository {
     required String horaInicio,
     required String horaFin,
     required String mensaje,
+    required bool aceptaTerminos,
     List<String> serviciosIds = const [],
   }) async {
     try {
       final response = await _dio.post(ApiConstants.reservations, data: {
-        'garaje_id': garageId,
+        'id_garaje': garageId,
         'fecha': fecha,
         'hora_inicio': horaInicio,
         'hora_fin': horaFin,
-        'mensaje_inquilino': mensaje,
-        if (serviciosIds.isNotEmpty) 'servicios_ids': serviciosIds,
+        'mensaje_inicial': mensaje,
+        'acepto_terminos_responsabilidad': aceptaTerminos,
       });
       final data = response.data;
       final reservationJson = data['reserva'] ?? data;
@@ -111,6 +112,22 @@ class ReservationRepository {
       final data = response.data;
       final reservationJson = data['reserva'] ?? data;
       return ReservationModel.fromJson(reservationJson as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> approveReservation(String id) async {
+    try {
+      await _dio.post(ApiConstants.approveReservation(id));
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> rejectReservation(String id) async {
+    try {
+      await _dio.post(ApiConstants.rejectReservation(id));
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
