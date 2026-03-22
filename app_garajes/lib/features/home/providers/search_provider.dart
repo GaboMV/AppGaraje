@@ -14,6 +14,7 @@ class SearchFilters {
   final double? lat;
   final double? lng;
   final double? radius;
+  final bool isExplicitLocation; // True when user typed a city, clicked "My Location", or tapped the map.
 
   const SearchFilters({
     this.fecha,
@@ -23,6 +24,7 @@ class SearchFilters {
     this.lat,
     this.lng,
     this.radius,
+    this.isExplicitLocation = false,
   });
 
   SearchFilters copyWith({
@@ -33,6 +35,7 @@ class SearchFilters {
     double? lat,
     double? lng,
     double? radius,
+    bool? isExplicitLocation,
   }) =>
       SearchFilters(
         fecha: fecha ?? this.fecha,
@@ -42,6 +45,7 @@ class SearchFilters {
         lat: lat ?? this.lat,
         lng: lng ?? this.lng,
         radius: radius ?? this.radius,
+        isExplicitLocation: isExplicitLocation ?? this.isExplicitLocation,
       );
 
   bool get hasFilters =>

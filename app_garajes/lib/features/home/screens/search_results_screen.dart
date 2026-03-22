@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -297,12 +296,15 @@ class _GarageCard extends StatelessWidget {
                 width: 90,
                 height: 90,
                 child: garage.primeraImagen.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: garage.primeraImagen,
+                    ? Image.network(
+                        garage.primeraImagen,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(
-                            color: AppTheme.primaryLight),
-                        errorWidget: (_, __, ___) => _PlaceholderImage(),
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(color: AppTheme.primaryLight);
+                        },
+                        errorBuilder: (context, error, stackTrace) =>
+                            _PlaceholderImage(),
                       )
                     : _PlaceholderImage(),
               ),

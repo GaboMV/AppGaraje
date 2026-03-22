@@ -8,6 +8,7 @@ import '../../home/data/garage_repository.dart';
 import '../../home/domain/create_garage_request.dart';
 import '../../home/providers/search_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../providers/my_garages_provider.dart';
 
 // ─── Wizard State ────────────────────────────────────────────────────────────
 
@@ -33,6 +34,8 @@ class GarageCreateState {
   final bool tieneBano;
   final bool tieneElectricidad;
   final List<Map<String, dynamic>> serviciosExtra; // [{nombre, costo}]
+  final String horaInicioJornada;
+  final String horaFinJornada;
 
   // Step 4 — Availability
   final Set<int> diasHabituales; // 0=Lun … 6=Dom
@@ -59,6 +62,8 @@ class GarageCreateState {
     this.serviciosExtra = const [],
     this.diasHabituales = const {0, 1, 2, 3, 4},
     this.diasBloqueados = const {},
+    this.horaInicioJornada = '08:00',
+    this.horaFinJornada = '20:00',
     this.isLoading = false,
     this.error,
   });
@@ -81,6 +86,8 @@ class GarageCreateState {
     List<Map<String, dynamic>>? serviciosExtra,
     Set<int>? diasHabituales,
     Set<DateTime>? diasBloqueados,
+    String? horaInicioJornada,
+    String? horaFinJornada,
     bool? isLoading,
     String? error,
   }) =>
@@ -102,6 +109,8 @@ class GarageCreateState {
         serviciosExtra: serviciosExtra ?? this.serviciosExtra,
         diasHabituales: diasHabituales ?? this.diasHabituales,
         diasBloqueados: diasBloqueados ?? this.diasBloqueados,
+        horaInicioJornada: horaInicioJornada ?? this.horaInicioJornada,
+        horaFinJornada: horaFinJornada ?? this.horaFinJornada,
         isLoading: isLoading ?? this.isLoading,
         error: error,
       );
@@ -153,6 +162,8 @@ class GarageCreateNotifier extends Notifier<GarageCreateState> {
     required bool bano,
     required bool electricidad,
     required List<Map<String, dynamic>> serviciosExtra,
+    required String horaInicio,
+    required String horaFin,
   }) {
     state = state.copyWith(
       precioHora: precioHora,
@@ -161,6 +172,8 @@ class GarageCreateNotifier extends Notifier<GarageCreateState> {
       tieneBano: bano,
       tieneElectricidad: electricidad,
       serviciosExtra: serviciosExtra,
+      horaInicioJornada: horaInicio,
+      horaFinJornada: horaFin,
     );
   }
 
@@ -185,7 +198,7 @@ class GarageCreateNotifier extends Notifier<GarageCreateState> {
         throw Exception("El documento de propiedad es obligatorio.");
       }
 
-      final mapData = <String, dynamic>{
+      final Map<String, dynamic> mapData = {
         'nombre': state.nombre,
         'descripcion': state.descripcion,
         'direccion': state.direccion,
@@ -197,66 +210,66 @@ class GarageCreateNotifier extends Notifier<GarageCreateState> {
         'tiene_bano': state.tieneBano,
         'tiene_electricidad': state.tieneElectricidad,
         'tiene_mesa': false,
-        // Encode extra services as JSON string (backend can parse)
         if (state.serviciosExtra.isNotEmpty)
           'servicios_extra': state.serviciosExtra
               .map((s) => '${s["nombre"]}:${s["costo"]}')
               .join(','),
+        'hora_inicio_jornada': state.horaInicioJornada,
+        'hora_fin_jornada': state.horaFinJornada,
       };
-      final formData = FormData.fromMap(mapData);
 
-      // Add documento propiedad (private)
+      // Handle private document
       if (state.documentoPropiedadLocal != null) {
         if (kIsWeb) {
-          print('Adding private document (Web)');
           final bytes = await XFile(state.documentoPropiedadLocal!).readAsBytes();
-          formData.files.add(MapEntry(
-            'documento',
-            MultipartFile.fromBytes(
-              bytes,
-              filename: 'documento.jpg',
-              contentType: MediaType('image', 'jpeg'),
-            ),
-          ));
+          mapData['documento'] = MultipartFile.fromBytes(
+            bytes,
+            filename: 'documento.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          );
         } else {
-          formData.files.add(MapEntry(
-            'documento',
-            await MultipartFile.fromFile(
-              state.documentoPropiedadLocal!,
-              filename: 'documento.jpg',
-              contentType: MediaType('image', 'jpeg'),
-            ),
-          ));
+          mapData['documento'] = await MultipartFile.fromFile(
+            state.documentoPropiedadLocal!,
+            filename: 'documento.jpg',
+            contentType: MediaType('image', 'jpeg'),
+          );
         }
       }
 
-      // Add public images
-      print('Adding ${state.imagenesLocales.length} public images');
-      for (int i = 0; i < state.imagenesLocales.length; i++) {
-        final path = state.imagenesLocales[i];
-        if (kIsWeb) {
-          final bytes = await XFile(path).readAsBytes();
-          formData.files.add(MapEntry(
-            'imagenes',
-            MultipartFile.fromBytes(
-              bytes,
-              filename: 'img_$i.jpg',
-              contentType: MediaType('image', 'jpeg'),
-            ),
-          ));
-        } else {
-          formData.files.add(MapEntry(
-            'imagenes',
-            await MultipartFile.fromFile(
-              path,
-              filename: 'img_$i.jpg',
-              contentType: MediaType('image', 'jpeg'),
-            ),
-          ));
+      final formData = FormData.fromMap(mapData);
+
+      // Handle multiple public images manually to avoid Dio appending [] to the key
+      if (state.imagenesLocales.isNotEmpty) {
+        for (int i = 0; i < state.imagenesLocales.length; i++) {
+          final path = state.imagenesLocales[i];
+          if (kIsWeb) {
+            final bytes = await XFile(path).readAsBytes();
+            formData.files.add(MapEntry(
+              'imagenes',
+              MultipartFile.fromBytes(
+                bytes,
+                filename: 'img_$i.jpg',
+                contentType: MediaType('image', 'jpeg'),
+              )
+            ));
+          } else {
+            formData.files.add(MapEntry(
+              'imagenes',
+              await MultipartFile.fromFile(
+                path,
+                filename: 'img_$i.jpg',
+                contentType: MediaType('image', 'jpeg'),
+              )
+            ));
+          }
         }
       }
 
       await _repo.createGarage(formData);
+      
+      // Refresh the list of my garages so the profile/screen updates immediately
+      ref.invalidate(myGaragesProvider);
+      
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {

@@ -7,7 +7,10 @@ import '../../../core/router/app_router.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../network/global_socket_provider.dart';
+import '../domain/reservation_model.dart';
 import '../providers/reservation_provider.dart';
+import '../providers/host_reservations_provider.dart';
 
 class ChatMessage {
   final String content;
@@ -38,26 +41,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _scrollCtrl = ScrollController();
   IO.Socket? _socket;
   final List<ChatMessage> _messages = [];
-  bool _isAccepted = false;
   bool _showPaymentModal = false;
   bool _payLoading = false;
   String _payMethod = 'qr';
+  bool _isInitLoaded = false;
+
+  bool _isLoadingRes = true;
+  ReservationModel? _reservation;
 
   @override
   void initState() {
     super.initState();
-    _connectSocket();
+    print('!!! [ChatScreen] initState STARTING !!!');
+    debugPrint('!!! [ChatScreen] initState STARTING !!!');
+    
+    _loadReservation().then((_) => _loadMessages());
+    _setupSocketListeners();
 
-    // Check initial reservation status
-    final activeRes = ref.read(activeReservationProvider);
-    if (activeRes != null && activeRes.isAccepted) {
-      _isAccepted = true;
-    }
-
-    // Add system messages to simulate state
     _messages.add(ChatMessage(
       content:
-          'Tu solicitud ha sido enviada. El propietario revisará tu perfil y responderá pronto.',
+          'Tu comunicación es segura. Por favor mantén el respeto durante la negociación.',
       senderId: 'system',
       senderName: 'Sistema',
       time: DateTime.now(),
@@ -65,58 +68,129 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ));
   }
 
-  Future<void> _connectSocket() async {
-    final token = await SecureStorageService.getToken();
-    if (token == null) return;
+  Future<void> _loadReservation() async {
+    try {
+      final repo = ref.read(reservationRepositoryProvider);
+      final res = await repo.getReservationById(widget.reservationId);
+      debugPrint('[ChatScreen] Reserva cargada: ID ${res.id}, Estado: ${res.estado}, Owner: ${res.ownerId}, Renter: ${res.renterId}');
+      if (mounted) {
+        setState(() {
+          _reservation = res;
+          _isLoadingRes = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[ChatScreen] Error cargando reserva: $e');
+      if (mounted) setState(() => _isLoadingRes = false);
+    }
+  }
 
-    _socket = IO.io(
-      ApiConstants.baseUrl,
-      IO.OptionBuilder()
-          .setTransports(['websocket'])
-          .setAuth({'token': 'Bearer $token'})
-          .disableAutoConnect()
-          .build(),
-    );
+  Future<void> _loadMessages() async {
+    try {
+      final repo = ref.read(reservationRepositoryProvider);
+      final list = await repo.getMessages(widget.reservationId);
+      debugPrint('[ChatScreen] ${list.length} mensajes cargados de la base de datos');
+      
+      if (mounted) {
+        setState(() {
+          for (var m in list) {
+            final senderId = m['emisor']?['id']?.toString() ?? '';
+            final senderName = m['emisor']?['nombre_completo'] ?? 'Usuario';
+            final content = m['contenido'] ?? '';
+            final timeStr = m['fecha_creacion'];
+            final time = timeStr != null ? DateTime.tryParse(timeStr) ?? DateTime.now() : DateTime.now();
 
-    _socket!.connect();
+            _messages.add(ChatMessage(
+              content: content,
+              senderId: senderId,
+              senderName: senderName,
+              time: time,
+            ));
+          }
+          _isInitLoaded = true;
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      debugPrint('[ChatScreen] Error cargando mensajes: $e');
+    }
+  }
 
-    _socket!.onConnect((_) {
-      _socket!.emit('join_room', {'reservaId': widget.reservationId});
+  Future<void> _setupSocketListeners() async {
+    final service = ref.read(globalSocketProvider);
+    await service.connect();
+    
+    _socket = service.socket;
+    if (_socket == null) {
+      debugPrint('[ChatScreen] Error: el Socket Global no está disponible');
+      return;
+    }
+
+    _socket!.on('joined_room', _onJoinedRoom);
+    _socket!.on('receive_message', _onReceiveMessage);
+    _socket!.on('reservation_accepted', _onReservationAccepted);
+
+    _joinRoom();
+  }
+
+  void _onJoinedRoom(dynamic data) {
+    debugPrint('[ChatScreen] Unido al room de reserva: ${data['reservaId']}');
+  }
+
+  void _onReceiveMessage(dynamic data) {
+    if (!mounted) return;
+    debugPrint('[ChatScreen] socket:receive_message -> ${data['contenido']}');
+    final senderId = data['emisor']?['id']?.toString() ?? '';
+    final senderName = data['emisor']?['nombre_completo'] ?? 'Usuario';
+    final content = data['contenido'] ?? '';
+
+    // Avoid double messages if the local state already has it (for the sender)
+    final user = ref.read(authProvider).valueOrNull;
+    if (senderId == user?.id?.toString()) {
+      debugPrint('[ChatScreen] Mensaje propio recibido por socket, ignorando duplicado local');
+      return;
+    }
+
+    setState(() {
+      _messages.add(ChatMessage(
+        content: content,
+        senderId: senderId,
+        senderName: senderName,
+        time: DateTime.now(),
+      ));
     });
+    _scrollToBottom();
+  }
 
-    _socket!.on('receive_message', (data) {
-      if (!mounted) return;
-      final senderId = data['emisor']?['id']?.toString() ?? '';
-      final senderName = data['emisor']?['nombre_completo'] ?? 'Usuario';
-      final content = data['contenido'] ?? '';
-
-      setState(() {
-        _messages.add(ChatMessage(
-          content: content,
-          senderId: senderId,
-          senderName: senderName,
-          time: DateTime.now(),
-        ));
-      });
-      _scrollToBottom();
+  void _onReservationAccepted(dynamic _) {
+    if (!mounted) return;
+    debugPrint('[ChatScreen] Evento reservation_accepted recibido');
+    _loadReservation(); // Recargar para actualizar estado visual
+    setState(() {
+      _messages.add(ChatMessage(
+        content: 'Sistema: La solicitud ha sido aprobada. Tienes 24h para realizar el pago.',
+        senderId: 'system',
+        senderName: 'Sistema',
+        time: DateTime.now(),
+        isSystem: true,
+      ));
     });
+    _scrollToBottom();
+  }
 
-    // Listen for reservation state changes
-    _socket!.on('reservation_accepted', (_) {
-      if (!mounted) return;
-      setState(() {
-        _isAccepted = true;
-        _messages.add(ChatMessage(
-          content:
-              'Sistema: La solicitud ha sido aprobada. Tienes 24h para realizar el pago.',
-          senderId: 'system',
-          senderName: 'Sistema',
-          time: DateTime.now(),
-          isSystem: true,
-        ));
-      });
-      _scrollToBottom();
-    });
+  void _removeSocketListeners() {
+    if (_socket == null) return;
+    _socket!.off('joined_room', _onJoinedRoom);
+    _socket!.off('receive_message', _onReceiveMessage);
+    _socket!.off('reservation_accepted', _onReservationAccepted);
+    
+    _socket!.emit('leave_room', {'reservaId': widget.reservationId});
+  }
+
+  void _joinRoom() {
+    if (_socket == null) return;
+    debugPrint('[ChatScreen] Emitiendo join_room para ${widget.reservationId}');
+    _socket!.emit('join_room', {'reservaId': widget.reservationId});
   }
 
   void _sendMessage() {
@@ -179,10 +253,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  Future<void> _confirmReservationByHost() async {
+    setState(() => _payLoading = true);
+    try {
+      await ref.read(hostReservationsProvider.notifier).confirmReservation(widget.reservationId);
+      if (mounted) {
+        _loadReservation(); // Recargar para actualizar UI
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reserva confirmada. El inquilino ha sido notificado para pagar.'),
+            backgroundColor: AppTheme.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _payLoading = false);
+    }
+  }
+
   @override
   void dispose() {
-    _socket?.disconnect();
-    _socket?.dispose();
+    _removeSocketListeners();
     _msgCtrl.dispose();
     _scrollCtrl.dispose();
     super.dispose();
@@ -191,11 +291,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).valueOrNull;
-    final myId = user?.id ?? '';
+    final myId = user?.id?.toString() ?? '';
+    final ownerId = _reservation?.ownerId?.toString() ?? '';
+    final renterId = _reservation?.renterId?.toString() ?? '';
+
+    final isPropietarioOfRes = myId == ownerId;
+    final isSolicitante = myId == renterId;
+    
+    debugPrint('[ChatScreen] MyID: $myId, OwnerID: $ownerId, RenterID: $renterId, isOwner: $isPropietarioOfRes, isSolicitante: $isSolicitante');
+
+    final otherName = isPropietarioOfRes ? _reservation?.renterName : _reservation?.ownerName;
+    final roleText = isPropietarioOfRes ? 'el Solicitante' : 'el Propietario';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: Stack(
+      body: _isLoadingRes 
+        ? const Center(child: CircularProgressIndicator())
+        : Stack(
         children: [
           Column(
             children: [
@@ -215,19 +327,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       Expanded(
                         child: Column(
                           children: [
-                            const Text('Chat con Propietario',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16)),
                             Text(
-                              _isAccepted ? 'Solicitud Aceptada' : 'En revisión...',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: _isAccepted
-                                    ? AppTheme.secondary
-                                    : AppTheme.textSecondary,
-                                fontWeight: FontWeight.w600,
+                              isPropietarioOfRes 
+                                  ? 'Chat con el solicitante del espacio:' 
+                                  : 'Chat con el propietario del espacio:',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                    color: AppTheme.textSecondary)),
+                            Text(
+                              '${_reservation?.garageName ?? 'Espacio'} - ${otherName ?? 'Usuario'}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppTheme.primary,
+                                fontWeight: FontWeight.w800,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
@@ -236,13 +352,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         icon: const Icon(Icons.more_vert_rounded),
                         onPressed: () {},
                       ),
+                      // Manual Reconnect Button for debugging
+                      IconButton(
+                        icon: const Icon(Icons.refresh_rounded, color: AppTheme.primary),
+                        onPressed: () {
+                          debugPrint('[ChatScreen] Reintento manual de conexión global...');
+                          final globalSock = ref.read(globalSocketProvider).socket;
+                          if (globalSock != null && !globalSock.connected) {
+                            globalSock.connect();
+                          }
+                          _joinRoom();
+                        },
+                        tooltip: 'Reconectar Chat', 
+                      ),
                     ],
                   ),
                 ),
               ),
 
-              // Accepted banner
-              if (_isAccepted)
+              // Accepted banner (Client)
+              if (!isPropietarioOfRes && _reservation?.isAccepted == true)
                 Container(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 10),
@@ -266,7 +395,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     color: AppTheme.secondary,
                                     fontWeight: FontWeight.w700,
                                     fontSize: 13)),
-                            Text('La reserva expira en 23:58h',
+                            Text('Tienes 24h para concretar el pago',
                                 style: TextStyle(
                                     color: AppTheme.textSecondary,
                                     fontSize: 11)),
@@ -282,7 +411,92 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           textStyle: const TextStyle(
                               fontSize: 12, fontWeight: FontWeight.w700),
                         ),
-                        child: const Text('PAGAR'),
+                        child: const Text('REALIZAR PAGO'),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Paid banner (Client and Owner)
+              if (_reservation?.isPaid == true || _reservation?.isActive == true)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    border: Border(
+                        bottom: BorderSide(
+                            color: const Color(0xFF10B981).withOpacity(0.3))),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.verified_rounded,
+                          color: Color(0xFF10B981), size: 20),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Reserva Confirmada',
+                                style: TextStyle(
+                                    color: Color(0xFF10B981),
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13)),
+                            Text('El pago se realizó con éxito',
+                                style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Negotiating Banner (Host)
+              if ((_reservation?.isPending == true || _reservation?.isNegotiating == true) && isPropietarioOfRes)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.08),
+                    border: Border(
+                        bottom: BorderSide(
+                            color: Colors.orange.withOpacity(0.2))),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded,
+                          color: Colors.orange, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('En Negociación',
+                                style: TextStyle(
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13)),
+                            Text('Confirma si llegaste a un acuerdo.',
+                                style: TextStyle(
+                                    color: AppTheme.textSecondary,
+                                    fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: _payLoading ? null : _confirmReservationByHost,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          minimumSize: const Size(80, 36),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          textStyle: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w700),
+                        ),
+                        child: _payLoading 
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text('CONFIRMAR RESERVA', style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),

@@ -78,7 +78,57 @@ class GarageRepository {
         ApiConstants.garages,
         data: formData,
       );
-      return GarageModel.fromJson(response.data as Map<String, dynamic>);
+      final data = response.data as Map<String, dynamic>;
+      return GarageModel.fromJson(data['garaje'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> deleteGarage(String id) async {
+    try {
+      await _dio.delete('${ApiConstants.garages}/$id');
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> deleteGarageImage(String garageId, String imageId) async {
+    try {
+      await _dio.delete('${ApiConstants.garages}/$garageId/imagenes/$imageId');
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> addServicioAdicional(String garageId, String nombre, double precio) async {
+    try {
+      await _dio.post(
+        ApiConstants.garageServicios(garageId),
+        data: {'nombre': nombre, 'precio': precio, 'es_por_dia': true},
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> deleteServicioAdicional(String garageId, String servicioId) async {
+    try {
+      await _dio.delete(ApiConstants.garageServicioAdicional(garageId, servicioId));
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> uploadImage(String garageId, MultipartFile file) async {
+    try {
+      final formData = FormData.fromMap({
+        'imagen': file,
+      });
+      await _dio.post(
+        '${ApiConstants.garages}/$garageId/imagenes',
+        data: formData,
+      );
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

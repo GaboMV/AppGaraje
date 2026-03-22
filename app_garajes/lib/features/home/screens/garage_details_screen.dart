@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -63,7 +62,7 @@ class _GarageDetailsScreenState
                 ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: _ImageGallery(
-                    images: garage.imagenes,
+                    images: garage.imagenes.map((e) => e.url).toList(),
                     current: _currentImg,
                     onChanged: (i) => setState(() => _currentImg = i),
                   ),
@@ -357,10 +356,15 @@ class _ImageGallery extends StatelessWidget {
         PageView.builder(
           itemCount: images.length,
           onPageChanged: onChanged,
-          itemBuilder: (_, i) => CachedNetworkImage(
-            imageUrl: images[i],
+          itemBuilder: (_, i) => Image.network(
+            images[i],
             fit: BoxFit.cover,
-            errorWidget: (_, __, ___) => Container(color: AppTheme.primaryLight),
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(color: AppTheme.primaryLight);
+            },
+            errorBuilder: (context, error, stackTrace) =>
+                Container(color: AppTheme.primaryLight),
           ),
         ),
         if (images.length > 1)

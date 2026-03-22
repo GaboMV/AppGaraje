@@ -14,6 +14,8 @@ class ReservationRepository {
     required String mensaje,
     required bool aceptaTerminos,
     List<String> serviciosIds = const [],
+    List<String> categoriasVenta = const [],
+    String? tipoCobro = 'POR_HORA',
   }) async {
     try {
       final response = await _dio.post(ApiConstants.reservations, data: {
@@ -23,6 +25,9 @@ class ReservationRepository {
         'hora_fin': horaFin,
         'mensaje_inicial': mensaje,
         'acepto_terminos_responsabilidad': aceptaTerminos,
+        'servicios_extra': serviciosIds.map((id) => {'id_servicio': id, 'cantidad': 1}).toList(),
+        'categorias_venta': categoriasVenta,
+        'tipo_cobro': tipoCobro,
       });
       final data = response.data;
       final reservationJson = data['reserva'] ?? data;
@@ -117,9 +122,17 @@ class ReservationRepository {
     }
   }
 
-  Future<void> approveReservation(String id) async {
+  Future<void> acceptForChat(String id) async {
     try {
-      await _dio.post(ApiConstants.approveReservation(id));
+      await _dio.post(ApiConstants.acceptForChat(id));
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<void> confirmReservation(String id) async {
+    try {
+      await _dio.post(ApiConstants.confirmReservation(id));
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }
@@ -128,6 +141,17 @@ class ReservationRepository {
   Future<void> rejectReservation(String id) async {
     try {
       await _dio.post(ApiConstants.rejectReservation(id));
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMessages(String reservationId) async {
+    try {
+      final response = await _dio.get(ApiConstants.chatHistory(reservationId));
+      final data = response.data;
+      final list = data['mensajes'] as List? ?? [];
+      return list.map((e) => e as Map<String, dynamic>).toList();
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

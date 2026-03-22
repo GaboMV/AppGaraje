@@ -18,6 +18,8 @@ class ApiConstants {
   static const String myGarages = '/api/garages/me';
   static String garageHorarios(String id) => '/api/garages/$id/horarios';
   static String garageServicios(String id) => '/api/garages/$id/servicios';
+  static String garageServicioAdicional(String idGaraje, String idServicio) =>
+      '/api/garages/$idGaraje/servicios/$idServicio';
   static String garageBloquearFecha(String id) =>
       '/api/garages/$id/bloquear-fecha';
   static String garageImagenes(String id) => '/api/garages/$id/imagenes';
@@ -31,7 +33,8 @@ class ApiConstants {
   static const String ownerReservations = '/api/reservations/owner';
   static String payReservation(String id) => '/api/reservations/$id/pagar';
   static String reservationById(String id) => '/api/reservations/$id';
-  static String approveReservation(String id) => '/api/reservations/$id/approve';
+  static String acceptForChat(String id) => '/api/reservations/$id/accept_chat';
+  static String confirmReservation(String id) => '/api/reservations/$id/confirm';
   static String rejectReservation(String id) => '/api/reservations/$id/reject';
 
   // Operations
@@ -52,4 +55,5 @@ class ApiConstants {
 
   // Chat
   static const String chatPresignedUrl = '/api/chat/presigned-url';
+  static String chatHistory(String id) => '/api/chat/$id/mensajes';
 }

@@ -17,18 +17,20 @@ class BookingRequestScreen extends ConsumerStatefulWidget {
       _BookingRequestScreenState();
 }
 
-class _BookingRequestScreenState
-    extends ConsumerState<BookingRequestScreen> {
+class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
   final _msgCtrl = TextEditingController();
+  final _categoriesCtrl = TextEditingController();
   DateTime? _fecha;
   TimeOfDay? _horaInicio;
   TimeOfDay? _horaFin;
   bool _aceptaTerminos = false;
+  bool _isDiaCompleto = false;
   bool _loading = false;
 
   @override
   void dispose() {
     _msgCtrl.dispose();
+    _categoriesCtrl.dispose();
     super.dispose();
   }
 
@@ -88,10 +90,18 @@ class _BookingRequestScreenState
   }
 
   Future<void> _submit() async {
-    if (_fecha == null || _horaInicio == null || _horaFin == null) {
+    if (!_isDiaCompleto && (_fecha == null || _horaInicio == null || _horaFin == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Selecciona fecha y horario'),
+            backgroundColor: AppTheme.error),
+      );
+      return;
+    }
+    if (_isDiaCompleto && _fecha == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Selecciona una fecha'),
             backgroundColor: AppTheme.error),
       );
       return;
@@ -127,18 +137,25 @@ class _BookingRequestScreenState
 
     final selectedServices = ref.read(selectedServicesProvider);
 
+    final categoriesStr = _categoriesCtrl.text.trim();
+    final categoriesList = categoriesStr.isNotEmpty 
+        ? categoriesStr.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList()
+        : <String>[];
+
     setState(() => _loading = true);
     try {
       final reservation =
           await ref.read(reservationProvider.notifier).createReservation(
                 garageId: garage.id,
                 fecha: _formatDate(_fecha!),
-                horaInicio: _formatTime(_horaInicio!),
-                horaFin: _formatTime(_horaFin!),
+                horaInicio: _isDiaCompleto ? garage.horaInicioJornada : _formatTime(_horaInicio!),
+                horaFin: _isDiaCompleto ? garage.horaFinJornada : _formatTime(_horaFin!),
                 mensaje: _msgCtrl.text.trim(),
                 aceptaTerminos: _aceptaTerminos,
                 serviciosIds:
                     selectedServices.map((s) => s.id).toList(),
+                categoriasVenta: categoriesList,
+                isDiaCompleto: _isDiaCompleto,
               );
       if (mounted) {
         context.pushReplacement(
@@ -343,7 +360,22 @@ class _BookingRequestScreenState
 
                             const Divider(height: 20, color: AppTheme.border),
 
+                            // Full Day Toggle
+                            SwitchListTile.adaptive(
+                              title: const Text('Reserva por día completo',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              subtitle: Text(
+                                  'Horario: ${garage.horaInicioJornada} a ${garage.horaFinJornada}',
+                                  style: const TextStyle(fontSize: 11)),
+                              value: _isDiaCompleto,
+                              activeColor: AppTheme.primary,
+                              contentPadding: EdgeInsets.zero,
+                              onChanged: (v) => setState(() => _isDiaCompleto = v),
+                            ),
+                            const Divider(height: 10, color: AppTheme.border),
+                            
                             // Date & Time selectors
+                            const SizedBox(height: 10),
                             GestureDetector(
                               onTap: _pickDate,
                               child: _InfoRow(
@@ -354,40 +386,68 @@ class _BookingRequestScreenState
                                 isSet: _fecha != null,
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => _pickTime(true),
-                                    child: _InfoRow(
-                                      icon: Icons.schedule_outlined,
-                                      label: _horaInicio != null
-                                          ? _formatTime(_horaInicio!)
-                                          : 'Hora Inicio',
-                                      isSet: _horaInicio != null,
+                            if (!_isDiaCompleto) ...[
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () => _pickTime(true),
+                                      child: _InfoRow(
+                                        icon: Icons.schedule_outlined,
+                                        label: _horaInicio != null
+                                            ? _formatTime(_horaInicio!)
+                                            : 'Hora Inicio',
+                                        isSet: _horaInicio != null,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => _pickTime(false),
-                                    child: _InfoRow(
-                                      icon: Icons.schedule_outlined,
-                                      label: _horaFin != null
-                                          ? _formatTime(_horaFin!)
-                                          : 'Hora Fin',
-                                      isSet: _horaFin != null,
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () => _pickTime(false),
+                                      child: _InfoRow(
+                                        icon: Icons.schedule_outlined,
+                                        label: _horaFin != null
+                                            ? _formatTime(_horaFin!)
+                                            : 'Hora Fin',
+                                        isSet: _horaFin != null,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
+                                ],
+                              ),
+                            ],
+// --- END Date Time Selectors ---
                           ],
                         ),
                       ),
 
+                    const SizedBox(height: 20),
+
+                    // Categorias de productos
+                    const Text('Categorías de productos',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Ingresa las categorías de los productos que planeas vender, separadas por comas (ej: Ropa, Juguetes, Electrónica).',
+                      style: TextStyle(
+                          color: AppTheme.textSecondary, fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _categoriesCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'Ropa, Zapatos, Accesorios...',
+                        hintStyle: TextStyle(
+                            color: AppTheme.textSecondary, fontSize: 13),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: AppTheme.border),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 20),
 
                     // Message to owner

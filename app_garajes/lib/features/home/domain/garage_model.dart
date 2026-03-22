@@ -26,6 +26,20 @@ class ServicioModel {
   }
 }
 
+class GarageImageModel {
+  final String id;
+  final String url;
+
+  const GarageImageModel({required this.id, required this.url});
+
+  factory GarageImageModel.fromJson(Map<String, dynamic> json) {
+    return GarageImageModel(
+      id: json['id']?.toString() ?? '',
+      url: json['url']?.toString() ?? '',
+    );
+  }
+}
+
 class GarageModel {
   final String id;
   final String nombre;
@@ -35,7 +49,7 @@ class GarageModel {
   final double precioPorHora;
   final double precioPorDia;
   final String? descripcion;
-  final List<String> imagenes;
+  final List<GarageImageModel> imagenes;
   final List<ServicioModel> servicios;
   final double calificacion;
   final int totalResenas;
@@ -44,6 +58,8 @@ class GarageModel {
   final String? propietarioFoto;
   final bool disponible;
   final bool estaAprobado;
+  final String horaInicioJornada;
+  final String horaFinJornada;
 
   const GarageModel({
     required this.id,
@@ -63,13 +79,15 @@ class GarageModel {
     this.propietarioFoto,
     this.disponible = true,
     this.estaAprobado = false,
+    this.horaInicioJornada = '08:00',
+    this.horaFinJornada = '20:00',
   });
 
   factory GarageModel.fromJson(Map<String, dynamic> json) {
     try {
       final imgs = json['imagenes'];
-      final List<String> imageList = imgs is List
-          ? imgs.map((e) => e['url']?.toString() ?? '').toList()
+      final List<GarageImageModel> imageList = imgs is List
+          ? imgs.map((e) => GarageImageModel.fromJson(e as Map<String, dynamic>)).toList()
           : [];
 
       final servs = json['servicios_adicionales'] ?? json['servicios'];
@@ -101,6 +119,8 @@ class GarageModel {
         propietarioFoto: propietario?['foto_url'],
         disponible: json['disponible'] ?? true,
         estaAprobado: json['esta_aprobado'] ?? false,
+        horaInicioJornada: json['hora_inicio_jornada'] ?? '08:00',
+        horaFinJornada: json['hora_fin_jornada'] ?? '20:00',
       );
     } catch (e, stack) {
       print('CRITICAL ERROR parsing GarageModel: $e');
@@ -111,7 +131,7 @@ class GarageModel {
   }
 
   String get primeraImagen =>
-      imagenes.isNotEmpty ? imagenes.first : '';
+      imagenes.isNotEmpty ? imagenes.first.url : '';
 }
 
 double _toDouble(dynamic value) {
