@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../providers/garage_create_provider.dart';
 import '../providers/my_garages_provider.dart';
 import 'steps/garage_location_step.dart';
@@ -67,8 +68,11 @@ class _GarageCreateWizardState extends ConsumerState<GarageCreateWizard> {
         await ref.read(garageCreateProvider.notifier).submit();
     if (!mounted) return;
     if (success) {
-      // Refresh the list
-      await ref.read(myGaragesProvider.notifier).refresh();
+      // Refresh the list and the user profile to update role (Vendedor -> Propietario)
+      await Future.wait([
+        ref.read(myGaragesProvider.notifier).refresh(),
+        ref.read(authProvider.notifier).refreshProfile(),
+      ]);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

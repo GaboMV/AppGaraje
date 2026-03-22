@@ -23,6 +23,9 @@ class _GaragePricingStepState extends ConsumerState<GaragePricingStep> {
   final List<Map<String, dynamic>> _serviciosExtra = [];
   final _extraNombreCtrl = TextEditingController();
   final _extraCostoCtrl = TextEditingController();
+  
+  TimeOfDay _horaInicio = const TimeOfDay(hour: 8, minute: 0);
+  TimeOfDay _horaFin = const TimeOfDay(hour: 20, minute: 0);
 
   @override
   void initState() {
@@ -38,6 +41,16 @@ class _GaragePricingStepState extends ConsumerState<GaragePricingStep> {
     _bano = state.tieneBano;
     _electricidad = state.tieneElectricidad;
     _serviciosExtra.addAll(state.serviciosExtra);
+
+    // Parse journey hours
+    final startParts = state.horaInicioJornada.split(':');
+    if (startParts.length == 2) {
+      _horaInicio = TimeOfDay(hour: int.parse(startParts[0]), minute: int.parse(startParts[1]));
+    }
+    final endParts = state.horaFinJornada.split(':');
+    if (endParts.length == 2) {
+      _horaFin = TimeOfDay(hour: int.parse(endParts[0]), minute: int.parse(endParts[1]));
+    }
   }
 
   @override
@@ -72,6 +85,22 @@ class _GaragePricingStepState extends ConsumerState<GaragePricingStep> {
     setState(() => _serviciosExtra.removeAt(index));
   }
 
+  String _formatTime(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  Future<void> _pickJourneyTime(bool isStart) async {
+    final t = await showTimePicker(
+      context: context,
+      initialTime: isStart ? _horaInicio : _horaFin,
+    );
+    if (t != null) {
+      setState(() {
+        if (isStart) _horaInicio = t;
+        else _horaFin = t;
+      });
+    }
+  }
+
   void _save() {
     final hora = double.tryParse(_precioHoraCtrl.text.trim()) ?? 0;
     final dia = double.tryParse(_precioDiaCtrl.text.trim()) ?? 0;
@@ -91,6 +120,8 @@ class _GaragePricingStepState extends ConsumerState<GaragePricingStep> {
           bano: _bano,
           electricidad: _electricidad,
           serviciosExtra: List.from(_serviciosExtra),
+          horaInicio: _formatTime(_horaInicio),
+          horaFin: _formatTime(_horaFin),
         );
     widget.onNext();
   }
@@ -148,6 +179,50 @@ class _GaragePricingStepState extends ConsumerState<GaragePricingStep> {
                   'Puedes activar uno o ambos modos de reserva.',
                   style:
                       TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
+                
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Divider(color: AppTheme.border),
+                ),
+
+                const Text('Horario de Jornada Completa',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                const SizedBox(height: 4),
+                const Text(
+                  'Si el usuario reserva por día, este será el horario incluido.',
+                  style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _pickJourneyTime(true),
+                        icon: const Icon(Icons.access_time, size: 16),
+                        label: Text('De: ${_formatTime(_horaInicio)}'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: const BorderSide(color: AppTheme.border),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _pickJourneyTime(false),
+                        icon: const Icon(Icons.access_time_filled, size: 16),
+                        label: Text('A: ${_formatTime(_horaFin)}'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: const BorderSide(color: AppTheme.border),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

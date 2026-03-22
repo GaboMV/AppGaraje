@@ -11,11 +11,10 @@ final activeReservationProvider =
 
 class ReservationNotifier
     extends AsyncNotifier<ReservationModel?> {
-  late final ReservationRepository _repo;
+  ReservationRepository get _repo => ref.read(reservationRepositoryProvider);
 
   @override
   Future<ReservationModel?> build() async {
-    _repo = ref.read(reservationRepositoryProvider);
     return null;
   }
 
@@ -27,6 +26,8 @@ class ReservationNotifier
     required String mensaje,
     required bool aceptaTerminos,
     List<String> serviciosIds = const [],
+    List<String> categoriasVenta = const [],
+    bool isDiaCompleto = false,
   }) async {
     state = const AsyncLoading();
     final result = await AsyncValue.guard(() => _repo.createReservation(
@@ -37,6 +38,8 @@ class ReservationNotifier
           mensaje: mensaje,
           aceptaTerminos: aceptaTerminos,
           serviciosIds: serviciosIds,
+          categoriasVenta: categoriasVenta,
+          tipoCobro: isDiaCompleto ? 'POR_DIA' : 'POR_HORA',
         ));
     state = result;
     if (result.hasValue) {
@@ -80,7 +83,7 @@ class ReservationNotifier
   Future<void> approveReservation(String id) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await _repo.approveReservation(id);
+      await _repo.confirmReservation(id);
       ref.invalidate(ownerReservationsProvider);
       return state.value;
     });

@@ -18,6 +18,8 @@ class GlobalSocketService {
   final ProviderRef ref;
   IO.Socket? _socket;
 
+  IO.Socket? get socket => _socket;
+
   GlobalSocketService(this.ref) {
     _initSocket();
   }
@@ -73,6 +75,21 @@ class GlobalSocketService {
       ref.read(authProvider.notifier).refreshProfile();
     });
 
+    _socket!.on('new_reservation_request', (data) {
+      debugPrint('GlobalSocket: new_reservation_request event received: $data');
+      _showSnackbar(data['message'] ?? '¡Nueva solicitud de reserva!', isSuccess: true);
+      // Refresh user profile if needed, or reservations list if that provider existed globally
+    });
+
+    _socket!.on('new_message_notification', (data) {
+      debugPrint('GlobalSocket: new_message_notification event received: $data');
+      final name = data['emisorName'] ?? 'Usuario';
+      final content = data['contenido'] ?? 'Nuevo mensaje';
+      // Ideally we check if we are not on the chat screen to avoid double alerts, 
+      // but SnackBar is decent enough for now.
+      _showSnackbar('Mensaje de $name: $content', isSuccess: true);
+    });
+
     _socket!.onDisconnect((_) {
       debugPrint('GlobalSocket: Disconnected');
     });
@@ -82,7 +99,7 @@ class GlobalSocketService {
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
-    debugPrint('GlobalSocket: Explicitly Disconnected');
+    debugPrint('GlobalSocket: Desconectado deliberadamente (sin sesión o usuario)');
   }
 
   void _showSnackbar(String message, {bool isSuccess = false}) {

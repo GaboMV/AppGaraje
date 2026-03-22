@@ -159,7 +159,10 @@ class _GarageCard extends StatelessWidget {
               Positioned(
                 top: 10,
                 left: 10,
-                child: _StatusBadge(activo: garage.disponible),
+                child: _StatusBadge(
+                  activo: garage.disponible,
+                  aprobado: garage.estaAprobado,
+                ),
               ),
             ],
           ),
@@ -304,19 +307,21 @@ class _StatChip extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final bool activo;
-  const _StatusBadge({required this.activo});
+  final bool aprobado;
+  const _StatusBadge({required this.activo, required this.aprobado});
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+  Widget build(BuildContext context) {
+    if (!aprobado) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: activo ? AppTheme.primary : Colors.black54,
+          color: const Color(0xFFF59E0B), // Ambar/Amarillo
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(
-          activo ? 'ACTIVO' : 'INACTIVO',
-          style: const TextStyle(
+        child: const Text(
+          'PENDIENTE',
+          style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w800,
             fontSize: 10,
@@ -324,6 +329,25 @@ class _StatusBadge extends StatelessWidget {
           ),
         ),
       );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: activo ? AppTheme.primary : Colors.black54,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        activo ? 'ACTIVO' : 'INACTIVO',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 10,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
 }
 
 // ─── Bottom Sheet Menu ───────────────────────────────────────────────────────

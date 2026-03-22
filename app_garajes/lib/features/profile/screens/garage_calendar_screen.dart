@@ -3,22 +3,25 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../home/domain/garage_model.dart';
 
-class GarageCalendarScreen extends StatefulWidget {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../booking/providers/host_reservations_provider.dart';
+import '../../booking/domain/reservation_model.dart';
+
+class GarageCalendarScreen extends ConsumerStatefulWidget {
   final GarageModel garage;
   const GarageCalendarScreen({super.key, required this.garage});
 
   @override
-  State<GarageCalendarScreen> createState() =>
+  ConsumerState<GarageCalendarScreen> createState() =>
       _GarageCalendarScreenState();
 }
 
-class _GarageCalendarScreenState extends State<GarageCalendarScreen> {
+class _GarageCalendarScreenState extends ConsumerState<GarageCalendarScreen> {
   late DateTime _displayMonth;
   DateTime? _selectedDay;
 
-  // Fake upcoming reservations for UI demo
-  // In production these would come from /api/reservations/owner
-  final List<_FakeReservation> _reservations = [];
+  // We will pull the real reservations from the provider
+  List<ReservationModel> _reservations = [];
 
   @override
   void initState() {
@@ -28,12 +31,28 @@ class _GarageCalendarScreenState extends State<GarageCalendarScreen> {
     _selectedDay = DateTime(now.year, now.month, now.day);
   }
 
+  // Fetch reservations real-time
+  void _updateReservations() {
+    final state = ref.read(hostReservationsProvider);
+    final allReservations = state.value ?? [];
+    
+    _reservations = allReservations.where((res) {
+      // Must be for this garage and in a state that implies booking (ACEPTADA, PAGADA, etc)
+      return res.garageId == widget.garage.id &&
+             (res.estado == 'ACEPTADA' || 
+              res.estado == 'PAGADA' ||
+              res.estado == 'EN_CURSO' ||
+              res.estado == 'EN_NEGOCIACION');
+    }).toList();
+  }
+
   // Days that have reservations
   bool _hasReservation(DateTime day) {
-    final normalized = DateTime(day.year, day.month, day.day);
     return _reservations.any((r) {
-      final rDay = DateTime(r.date.year, r.date.month, r.date.day);
-      return rDay == normalized;
+      if (r.fecha.isEmpty) return false;
+      final dt = DateTime.tryParse(r.fecha);
+      if (dt == null) return false;
+      return dt.year == day.year && dt.month == day.month && dt.day == day.day;
     });
   }
 
@@ -50,11 +69,12 @@ class _GarageCalendarScreenState extends State<GarageCalendarScreen> {
       day.month == _selectedDay!.month &&
       day.day == _selectedDay!.day;
 
-  List<_FakeReservation> _reservationsForDay(DateTime day) {
-    final normalized = DateTime(day.year, day.month, day.day);
+  List<ReservationModel> _reservationsForDay(DateTime day) {
     return _reservations.where((r) {
-      final rDay = DateTime(r.date.year, r.date.month, r.date.day);
-      return rDay == normalized;
+      if (r.fecha.isEmpty) return false;
+      final dt = DateTime.tryParse(r.fecha);
+      if (dt == null) return false;
+      return dt.year == day.year && dt.month == day.month && dt.day == day.day;
     }).toList();
   }
 
@@ -70,9 +90,12 @@ class _GarageCalendarScreenState extends State<GarageCalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep it sync'd when provider changes
+    _updateReservations();
+
     final selected = _selectedDay;
     final dayReservations =
-        selected != null ? _reservationsForDay(selected) : <_FakeReservation>[];
+        selected != null ? _reservationsForDay(selected) : <ReservationModel>[];
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -192,8 +215,8 @@ class _GarageCalendarScreenState extends State<GarageCalendarScreen> {
                                 color: const Color(0xFFD1FAE5),
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Text(
-                                'Confirmado',
+                              child: Text(
+                                dayReservations.first.estado.toUpperCase(),
                                 style: TextStyle(
                                     fontSize: 11,
                                     color: AppTheme.secondary,
@@ -325,7 +348,7 @@ class _GarageCalendarScreenState extends State<GarageCalendarScreen> {
 // ─── Reservation Card ─────────────────────────────────────────────────────────
 
 class _ReservationCard extends StatelessWidget {
-  final _FakeReservation reservation;
+  final ReservationModel reservation;
   const _ReservationCard({required this.reservation});
 
   @override
@@ -346,7 +369,7 @@ class _ReservationCard extends StatelessWidget {
                   radius: 22,
                   backgroundColor: AppTheme.primaryLight,
                   child: Text(
-                    reservation.clientName[0],
+                    (reservation.renterName ?? 'U')[0].toUpperCase(),
                     style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         color: AppTheme.primary,
@@ -358,11 +381,11 @@ class _ReservationCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(reservation.clientName,
+                      Text(reservation.renterName ?? 'Usuario',
                           style: const TextStyle(
                               fontWeight: FontWeight.w700, fontSize: 14)),
                       Text(
-                        '${reservation.rating} Estrellas (${reservation.reviews} reseñas)',
+                        'Total: \$${reservation.total.toStringAsFixed(0)}',
                         style: const TextStyle(
                             fontSize: 11, color: AppTheme.textSecondary),
                       ),
@@ -378,12 +401,12 @@ class _ReservationCard extends StatelessWidget {
               children: [
                 _InfoChip(
                   icon: Icons.access_time_rounded,
-                  label: reservation.horario,
+                  label: '${reservation.horaInicio} - ${reservation.horaFin}',
                 ),
                 const SizedBox(width: 12),
                 _InfoChip(
-                  icon: Icons.person_outline_rounded,
-                  label: reservation.proposito,
+                  icon: Icons.info_outline_rounded,
+                  label: reservation.estado,
                 ),
               ],
             ),
@@ -431,24 +454,4 @@ class _InfoChip extends StatelessWidget {
                   fontSize: 12, color: AppTheme.textSecondary)),
         ],
       );
-}
-
-// ─── Fake Reservation Model ───────────────────────────────────────────────────
-
-class _FakeReservation {
-  final DateTime date;
-  final String clientName;
-  final double rating;
-  final int reviews;
-  final String horario;
-  final String proposito;
-
-  const _FakeReservation({
-    required this.date,
-    required this.clientName,
-    required this.rating,
-    required this.reviews,
-    required this.horario,
-    required this.proposito,
-  });
 }
