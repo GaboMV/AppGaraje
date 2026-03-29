@@ -19,8 +19,11 @@ class ServicioModel {
         precio: _toDouble(json['precio']),
         descripcion: json['descripcion'],
       );
+    import '../../../core/utils/app_logger.dart';
+    
+    // ...
     } catch (e) {
-      print('Error parsing ServicioModel: $e');
+      AppLogger.warn('Error derivando entidad conceptual ServicioModel: $e');
       return const ServicioModel(id: '', nombre: 'Error', precio: 0.0);
     }
   }
@@ -60,6 +63,10 @@ class GarageModel {
   final bool estaAprobado;
   final String horaInicioJornada;
   final String horaFinJornada;
+  final bool tieneWifi;
+  final bool tieneBano;
+  final bool tieneElectricidad;
+  final bool tieneMesa;
 
   const GarageModel({
     required this.id,
@@ -81,6 +88,10 @@ class GarageModel {
     this.estaAprobado = false,
     this.horaInicioJornada = '08:00',
     this.horaFinJornada = '20:00',
+    this.tieneWifi = false,
+    this.tieneBano = false,
+    this.tieneElectricidad = false,
+    this.tieneMesa = false,
   });
 
   factory GarageModel.fromJson(Map<String, dynamic> json) {
@@ -121,11 +132,14 @@ class GarageModel {
         estaAprobado: json['esta_aprobado'] ?? false,
         horaInicioJornada: json['hora_inicio_jornada'] ?? '08:00',
         horaFinJornada: json['hora_fin_jornada'] ?? '20:00',
+        tieneWifi: json['tiene_wifi'] ?? false,
+        tieneBano: json['tiene_bano'] ?? false,
+        tieneElectricidad: json['tiene_electricidad'] ?? false,
+        tieneMesa: json['tiene_mesa'] ?? false,
       );
     } catch (e, stack) {
-      print('CRITICAL ERROR parsing GarageModel: $e');
-      print('JSON data: $json');
-      print('Stack trace: $stack');
+      AppLogger.error('Inconsistencia en serialización de GarageModel', error: e, stackTrace: stack);
+      AppLogger.info('Volcado JSON adjunto: $json');
       rethrow;
     }
   }

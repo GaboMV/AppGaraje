@@ -5,6 +5,7 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../domain/garage_model.dart';
 import '../providers/search_provider.dart';
+import '../../auth/providers/auth_provider.dart';
 
 class GarageDetailsScreen extends ConsumerStatefulWidget {
   const GarageDetailsScreen({super.key});
@@ -220,16 +221,22 @@ class _GarageDetailsScreenState
                       const _Divider(),
                       const _SectionTitle('Incluido gratis'),
                       const SizedBox(height: 12),
-                      Row(
-                        children: const [
-                          _AmenityChip(
-                              icon: Icons.wc_rounded, label: 'Baño'),
-                          SizedBox(width: 12),
-                          _AmenityChip(
-                              icon: Icons.bolt_rounded, label: 'Luz'),
-                          SizedBox(width: 12),
-                          _AmenityChip(
-                              icon: Icons.wifi_rounded, label: 'WiFi'),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          if (garage.tieneBano)
+                            const _AmenityChip(
+                                icon: Icons.wc_rounded, label: 'Baño'),
+                          if (garage.tieneElectricidad)
+                            const _AmenityChip(
+                                icon: Icons.bolt_rounded, label: 'Luz'),
+                          if (garage.tieneWifi)
+                            const _AmenityChip(
+                                icon: Icons.wifi_rounded, label: 'WiFi'),
+                          if (garage.tieneMesa)
+                            const _AmenityChip(
+                                icon: Icons.table_restaurant_rounded, label: 'Mesa'),
                         ],
                       ),
 
@@ -314,9 +321,28 @@ class _GarageDetailsScreenState
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () =>
-                          context.push(AppRoutes.bookingRequest),
-                      child: const Text('Reservar'),
+                      onPressed: () {
+                        final authState = ref.read(authProvider);
+                        final isOwner =
+                            garage.propietarioId == authState.valueOrNull?.id;
+                        if (isOwner) {
+                          context.push(AppRoutes.garageEdit, extra: garage);
+                        } else {
+                          context.push(AppRoutes.bookingRequest);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: (garage.propietarioId ==
+                                ref.read(authProvider).valueOrNull?.id)
+                            ? Colors.green
+                            : null,
+                      ),
+                      child: Text(
+                        (garage.propietarioId ==
+                                ref.read(authProvider).valueOrNull?.id)
+                            ? 'Editar mi Garaje'
+                            : 'Reservar',
+                      ),
                     ),
                   ),
                 ],

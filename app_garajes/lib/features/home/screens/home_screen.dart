@@ -266,25 +266,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ),
 
-                    // Category pills
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      height: 36,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          _Pill('Ropa', selected: true),
-                          const SizedBox(width: 8),
-                          _Pill('Electrónica'),
-                          const SizedBox(width: 8),
-                          _Pill('Muebles'),
-                          const SizedBox(width: 8),
-                          _Pill('Juguetes'),
-                          const SizedBox(width: 8),
-                          _Pill('Libros'),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -646,22 +627,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Marker _buildMarker(BuildContext context, GarageModel g) {
+    final authState = ref.read(authProvider);
+    final currentUserId = authState.valueOrNull?.id;
+    final isOwner = g.propietarioId == currentUserId;
+
     return Marker(
       point: LatLng(g.latitud, g.longitud),
       width: 70,
       height: 36,
       child: GestureDetector(
         onTap: () {
-          ref.read(selectedGarageProvider.notifier).state = g;
-          context.push(AppRoutes.garageDetails);
+          if (isOwner) {
+            context.push(AppRoutes.garageEdit, extra: g);
+          } else {
+            ref.read(selectedGarageProvider.notifier).state = g;
+            context.push(AppRoutes.garageDetails);
+          }
         },
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.primary,
+            color: isOwner ? Colors.green : AppTheme.primary,
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                  color: AppTheme.primary.withOpacity(0.4),
+                  color: (isOwner ? Colors.green : AppTheme.primary).withOpacity(0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 3))
             ],
@@ -805,39 +794,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _Pill extends StatelessWidget {
-  final String label;
-  final bool selected;
-  const _Pill(this.label, {this.selected = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected ? AppTheme.primary : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(40),
-        boxShadow: selected
-            ? [
-                BoxShadow(
-                    color: AppTheme.primary.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2))
-              ]
-            : [],
-        border:
-            Border.all(color: selected ? AppTheme.primary : AppTheme.border),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-            color: selected ? Colors.white : AppTheme.textSecondary),
-      ),
-    );
-  }
-}
 
 class _BottomNav extends StatelessWidget {
   final int selected;

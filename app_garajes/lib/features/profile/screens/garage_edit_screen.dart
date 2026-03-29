@@ -63,7 +63,10 @@ class _GarageEditScreenState extends ConsumerState<GarageEditScreen> {
         text: (g.precioPorHora * 24).toStringAsFixed(0));
     _capacidadCtrl = TextEditingController(text: '1');
     
-    _tieneMesa = false;
+    _tieneWifi = g.tieneWifi;
+    _tieneBano = g.tieneBano;
+    _tieneElectricidad = g.tieneElectricidad;
+    _tieneMesa = g.tieneMesa;
 
     // Initialize journey hours
     final startParts = g.horaInicioJornada.split(':');

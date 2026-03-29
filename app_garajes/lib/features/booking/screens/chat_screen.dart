@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import '../../../core/constants/api_constants.dart';
 import '../../../core/router/app_router.dart';
-import '../../../core/storage/secure_storage.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../network/global_socket_provider.dart';
 import '../domain/reservation_model.dart';
 import '../providers/reservation_provider.dart';
 import '../providers/host_reservations_provider.dart';
+import '../../../core/utils/app_logger.dart';
 
 class ChatMessage {
   final String content;
@@ -52,8 +51,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    print('!!! [ChatScreen] initState STARTING !!!');
-    debugPrint('!!! [ChatScreen] initState STARTING !!!');
+    AppLogger.info('[ChatScreen] Ciclo de vida initState invocado.');
+    debugPrint('[ChatScreen] initState STARTING');
     
     _loadReservation().then((_) => _loadMessages());
     _setupSocketListeners();
@@ -146,7 +145,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     // Avoid double messages if the local state already has it (for the sender)
     final user = ref.read(authProvider).valueOrNull;
-    if (senderId == user?.id?.toString()) {
+    if (senderId == user?.id) {
       debugPrint('[ChatScreen] Mensaje propio recibido por socket, ignorando duplicado local');
       return;
     }
@@ -291,9 +290,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).valueOrNull;
-    final myId = user?.id?.toString() ?? '';
-    final ownerId = _reservation?.ownerId?.toString() ?? '';
-    final renterId = _reservation?.renterId?.toString() ?? '';
+    final myId = user?.id ?? '';
+    final ownerId = _reservation?.ownerId ?? '';
+    final renterId = _reservation?.renterId ?? '';
 
     final isPropietarioOfRes = myId == ownerId;
     final isSolicitante = myId == renterId;

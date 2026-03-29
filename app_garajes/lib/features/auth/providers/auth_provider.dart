@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../data/auth_repository.dart';
 import '../domain/user_model.dart';
+import '../../../core/utils/app_logger.dart';
 
 // Repository provider
 final authRepositoryProvider = Provider<AuthRepository>((_) => AuthRepository());
@@ -16,7 +17,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     // Restore session from storage
     final hasToken = await SecureStorageService.hasToken();
     if (!hasToken) {
-      print('[AuthNotifier] No hay token en storage.');
+      AppLogger.info('[AuthNotifier] Almacén local despojado de credenciales asignadas.');
       return null;
     }
 
@@ -24,11 +25,11 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
     final String? userId = info['id'];
     
     if (userId == null) {
-      print('[AuthNotifier] No se encontró ID de usuario en storage.');
+      AppLogger.warn('[AuthNotifier] Inconsistencia en bloque de identidad. Imposible derivar ID usuario.');
       return null;
     }
 
-    print('[AuthNotifier] Restaurando sesión para ID: $userId');
+    AppLogger.info('[AuthNotifier] Iniciando restauración persistente para ID: $userId');
 
     return UserModel(
       id: userId,
@@ -65,7 +66,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
           password: password,
         ));
     if (user.hasValue) {
-      print('[AuthNotifier] Login success. Role: ${user.value?.modoActual}');
+      AppLogger.info('[AuthNotifier] Adquisición de acceso lograda. Referencia jerárquica: ${user.value?.modoActual}');
     }
     state = user;
     return user.value!;

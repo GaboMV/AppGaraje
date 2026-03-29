@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../providers/garage_create_provider.dart';
-import '../../../../core/providers/location_provider.dart';
 
 class GarageLocationStep extends ConsumerStatefulWidget {
   final VoidCallback onNext;
@@ -28,18 +27,11 @@ class _GarageLocationStepState extends ConsumerState<GarageLocationStep> {
     super.initState();
     _mapController = MapController();
     final state = ref.read(garageCreateProvider);
-    final locState = ref.read(locationProvider);
-    
-    if (state.lat != 0 && state.lng != 0 && state.lat != 19.4326) {
-      _center = LatLng(state.lat, state.lng);
-    } else if (locState.position != null) {
-      _center = LatLng(locState.position!.latitude, locState.position!.longitude);
-    } else {
-      _center = LatLng(state.lat != 0 ? state.lat : 19.4326, state.lng != 0 ? state.lng : -99.1332);
-    }
-
-    _direccionCtrl = TextEditingController(text: state.direccion);
-    _refCtrl = TextEditingController(text: state.referencias);
+    _center = LatLng(state.lat, state.lng);
+    _direccionCtrl =
+        TextEditingController(text: state.direccion);
+    _refCtrl =
+        TextEditingController(text: state.referencias);
   }
 
   @override
@@ -72,17 +64,6 @@ class _GarageLocationStepState extends ConsumerState<GarageLocationStep> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<LocationState>(locationProvider, (previous, next) {
-      if (previous?.position == null && next.position != null) {
-        final state = ref.read(garageCreateProvider);
-        if (state.lat == 0 || state.lat == 19.4326) {
-          final newPos = LatLng(next.position!.latitude, next.position!.longitude);
-          setState(() => _center = newPos);
-          _mapController.move(newPos, 15.0);
-        }
-      }
-    });
-
     return Column(
       children: [
         // Map

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/api_constants.dart';
 import '../storage/secure_storage.dart';
+import '../utils/app_logger.dart';
 
 class DioClient {
   static Dio? _instance;
@@ -30,16 +31,16 @@ class DioClient {
         onRequest: (options, handler) async {
           final token = await SecureStorageService.getToken();
           if (token != null) {
-            print('[DioClient] Injectando Token: ${token.substring(0, 10)}... en ${options.path}');
+            AppLogger.info('[DioClient] Credencial inyectada en cabeceras de red para la vía: ${options.path}');
             options.headers['Authorization'] = 'Bearer $token';
           } else {
-            print('[DioClient] NO se encontró Token para ${options.path}');
+            AppLogger.warn('[DioClient] Ausencia de credenciales para consumo en ${options.path}');
           }
           return handler.next(options);
         },
         onError: (DioException e, handler) {
-          print('[DioClient] ERROR en ${e.requestOptions.path}: ${e.response?.statusCode}');
-          print('[DioClient] Respuesta: ${e.response?.data}');
+          AppLogger.error('[DioClient] Interrupción operativa en ${e.requestOptions.path}. Estatus de retorno: ${e.response?.statusCode}');
+          AppLogger.info('[DioClient] Trama residual: ${e.response?.data}');
           return handler.next(e);
         },
       ),

@@ -5,6 +5,7 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/my_garages_provider.dart';
+import '../../../core/utils/app_logger.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -14,11 +15,11 @@ class ProfileScreen extends ConsumerWidget {
     final user = ref.watch(authProvider).valueOrNull;
     final myGaragesState = ref.watch(myGaragesProvider);
 
-    print('DEBUG: ProfileScreen - User ID: ${user?.id}');
+    AppLogger.info('ProfileScreen - User ID: ${user?.id}');
     myGaragesState.whenOrNull(data: (list) {
-      print('DEBUG: ProfileScreen - Garages found: ${list.length}');
+      AppLogger.info('ProfileScreen - Garages found: ${list.length}');
       for (var g in list) {
-        print('DEBUG: ProfileScreen - Garage ID: ${g.id}, Aprobado: ${g.estaAprobado}');
+        AppLogger.info('ProfileScreen - Garage ID: ${g.id}, Aprobado: ${g.estaAprobado}');
       }
     });
 

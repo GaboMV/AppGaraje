@@ -3,6 +3,7 @@ import '../../home/data/garage_repository.dart';
 import '../../home/domain/garage_model.dart';
 import '../../home/providers/search_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/utils/app_logger.dart';
 
 class MyGaragesNotifier extends AsyncNotifier<List<GarageModel>> {
   @override
@@ -19,7 +20,7 @@ class MyGaragesNotifier extends AsyncNotifier<List<GarageModel>> {
       final list = await repo.getMyGarages();
       return list;
     } catch (e, stack) {
-      print('MyGaragesProvider: [ERROR] $e');
+      AppLogger.error('Fallo capturado en MyGaragesProvider', error: e, stackTrace: stack);
       return [];
     }
   }
@@ -31,7 +32,7 @@ class MyGaragesNotifier extends AsyncNotifier<List<GarageModel>> {
       final list = await repo.getMyGarages();
       state = AsyncData(list);
     } catch (e) {
-      print('MyGaragesProvider: [REFRESH ERROR] $e');
+      AppLogger.error('Interrupción observada durante refresh', error: e);
       state = const AsyncData([]);
     }
   }

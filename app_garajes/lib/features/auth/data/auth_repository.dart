@@ -3,6 +3,7 @@ import '../../../core/network/dio_client.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../domain/user_model.dart';
+import '../../../core/utils/app_logger.dart';
 
 class AuthRepository {
   final Dio _dio = DioClient.instance;
@@ -52,11 +53,11 @@ class AuthRepository {
       final data = response.data;
       final token = data['token'];
       final userJson = Map<String, dynamic>.from(data['user']);
-      print('[AuthRepo] DEBUG: User JSON from server: $userJson');
+      AppLogger.info('[AuthRepo] Volcado crudo desde matriz de datos para inicialización paramétrica de la entidad Usuario.');
       userJson['token'] = token;
 
       final user = UserModel.fromJson(userJson);
-      print('[AuthRepo] DEBUG: Mapped mode: ${user.modoActual}');
+      AppLogger.info('[AuthRepo] Interpretación jerárquica resultante: ${user.modoActual}');
       await SecureStorageService.saveToken(token);
       await SecureStorageService.saveUserInfo(
         id: user.id,
