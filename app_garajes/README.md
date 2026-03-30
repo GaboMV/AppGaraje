@@ -58,21 +58,51 @@ lib/
 - **Providers:** Interacción entre estado estático UI y estado lógico (Cubit/Notifier).
 - **Screens/UI:** Módulos de vistas organizados para presentación pura, sin lógica de negocio fuerte.
 
-## Instalación y Despliegue
+## 🚀 Instalación y Despliegue
 
-1. **Resolver dependencias base**
+Siga estos pasos para configurar el entorno de desarrollo y ejecutar la aplicación en su dispositivo o simulador.
+
+### Requisitos Previos
+
+- **Flutter SDK**: ^3.7.2 (Canal Stable)
+- **Dart SDK**: ^3.0.0
+- **Android Studio / Xcode**: Para compilación en dispositivos móviles.
+- **Herramientas de línea de comandos**: Git y un terminal compatible.
+
+### Pasos de Configuración
+
+1. **Clonar el repositorio**
+   ```bash
+   git clone https://github.com/GaboMV/AppGaraje.git
+   cd app_garajes
+   ```
+
+2. **Configurar Variables de Entorno**
+   Asegúrese de que el archivo `.env` en la raíz del proyecto esté presente. Este archivo contiene las claves de API y URLs necesarias para el funcionamiento del sistema:
+   ```env
+   API_BASE_URL=https://garaje-backend-api.onrender.com
+   GOOGLE_CLIENT_ID=TU_CLIENT_ID_DE_GOOGLE
+   ```
+
+3. **Instalar dependencias**
    ```bash
    flutter pub get
    ```
 
-2. **Ejecutar Generadores de Código (si existen clases serializadas o AutoRoute)**
+4. **Generación de Código**
+   Este proyecto utiliza generadores para Riverpod y modelos de datos. Ejecute el siguiente comando para generar los archivos necesarios:
    ```bash
    flutter pub run build_runner build --delete-conflicting-outputs
    ```
 
-3. **Ejecutar Aplicación**
+5. **Ejecutar la Aplicación**
+   Para iniciar la aplicación en modo desarrollo:
    ```bash
    flutter run
    ```
 
-Asegúrese de configurar previamente los entornos URL dependientes en la capa de constantes apuntando al servidor backend.
+---
+
+> [!NOTE]
+> Para pruebas en el **Emulador de Android**, recuerde que `localhost` se mapea a `10.0.2.2`. Si utiliza un dispositivo físico, el dispositivo y el servidor deben estar en la misma red local.
+
