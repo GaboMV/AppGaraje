@@ -1,0 +1,68 @@
+name: app_garajes
+description: "App para alquiler de espacios para ventas de garage - GarageSale"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.3
+
+  # HTTP Client
+  dio: ^5.8.0+1
+
+  # Secure Storage (JWT token)
+  flutter_secure_storage: ^9.2.4
+
+  # Maps
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
+  # Socket.io (chat en tiempo real)
+  socket_io_client: ^2.0.3+1
+
+  # Google Sign In
+  google_sign_in: ^6.2.2
+
+  # Image Picker (KYC)
+  image_picker: ^1.1.2
+
+  # Image Caching
+  cached_network_image: ^3.4.1
+
+  # Date/time formatting
+  intl: ^0.20.2
+
+  # Loading shimmer effect
+  shimmer: ^3.0.0
+
+  # Dotenv (API URL)
+  flutter_dotenv: ^5.2.1
+  geolocator: ^14.0.2
+  flutter_map_marker_cluster: ^1.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.14
+  riverpod_generator: ^2.6.5
+  custom_lint: ^0.7.5
+  riverpod_lint: ^2.6.5
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/images/
