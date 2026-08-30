@@ -117,6 +117,8 @@ class _PaymentUploadScreenState extends ConsumerState<PaymentUploadScreen>
         );
         return;
       }
+      // BUG-06 fix: verificar mounted tras el gap async antes del setState
+      if (!mounted) return;
       setState(() => _voucherFile = File(picked.path));
       ref.read(paymentUploadProvider.notifier).reset();
     }
@@ -596,9 +598,12 @@ class _SandboxQrTab extends ConsumerWidget {
           const SizedBox(height: 28),
 
           // â”€â”€ QR o loader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          Container(
-            width:  280,
-            height: 280,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final qrSize = (MediaQuery.of(context).size.width * 0.65).clamp(200.0, 280.0);
+              return Container(
+                width:  qrSize,
+                height: qrSize,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color:        Colors.white,
@@ -684,6 +689,8 @@ class _SandboxQrTab extends ConsumerWidget {
                           ),
                         ),
                       ),
+              );
+            },
           ),
           const SizedBox(height: 12),
 

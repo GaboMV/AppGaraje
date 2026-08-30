@@ -83,7 +83,24 @@ class _ReservationDetailsBodyState
 
   ReservationModel get reservation => widget.reservation;
 
-  // ── Check-In ────────────────────────────────────────────────────────────
+  void _showReportModal(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: _ReportModalContent(reservationId: reservation.id),
+      ),
+    );
+  }
+
+  // 🚙 Check-In ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   Future<void> _handleCheckIn() async {
     setState(() => _isLoading = true);
     final messenger = ScaffoldMessenger.of(context);

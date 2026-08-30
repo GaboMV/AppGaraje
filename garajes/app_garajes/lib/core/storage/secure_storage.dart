@@ -13,6 +13,7 @@ class SecureStorageService {
   static const _modoActual = 'modo_actual';
   static const _dniFotoUrl = 'dni_foto_url';
   static const _selfieUrl = 'selfie_url';
+  static const _urlFotoPerfil = 'url_foto_perfil';
 
   // Token
   static Future<void> saveToken(String token) async =>
@@ -38,6 +39,7 @@ class SecureStorageService {
     String? modoActual,
     String? dniFotoUrl,
     String? selfieUrl,
+    String? urlFotoPerfil,
   }) async {
     await Future.wait([
       _storage.write(key: _userIdKey, value: id),
@@ -47,6 +49,7 @@ class SecureStorageService {
       if (modoActual != null) _storage.write(key: _modoActual, value: modoActual),
       if (dniFotoUrl != null) _storage.write(key: _dniFotoUrl, value: dniFotoUrl),
       if (selfieUrl != null) _storage.write(key: _selfieUrl, value: selfieUrl),
+      if (urlFotoPerfil != null) _storage.write(key: _urlFotoPerfil, value: urlFotoPerfil),
     ]);
   }
 
@@ -59,6 +62,7 @@ class SecureStorageService {
       _storage.read(key: _modoActual),
       _storage.read(key: _dniFotoUrl),
       _storage.read(key: _selfieUrl),
+      _storage.read(key: _urlFotoPerfil),
     ]);
     return {
       'id': values[0],
@@ -68,6 +72,7 @@ class SecureStorageService {
       'modo_actual': values[4],
       'dni_foto_url': values[5],
       'selfie_url': values[6],
+      'url_foto_perfil': values[7],
     };
   }
 

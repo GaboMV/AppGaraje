@@ -39,6 +39,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
       modoActual: info['modo_actual'],
       dniFotoUrl: info['dni_foto_url'],
       selfieUrl: info['selfie_url'],
+      urlFotoPerfil: info['url_foto_perfil'], // BUG-03 fix: restaurar avatar
     );
   }
 
@@ -94,6 +95,7 @@ class AuthNotifier extends AsyncNotifier<UserModel?> {
         modoActual: user.modoActual,
         dniFotoUrl: user.dniFotoUrl,
         selfieUrl: user.selfieUrl,
+        urlFotoPerfil: user.urlFotoPerfil, // BUG-03 fix: persistir avatar
       );
       state = AsyncData(user);
     } else if (result.hasError) {

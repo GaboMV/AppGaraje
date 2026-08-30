@@ -90,14 +90,12 @@ class GlobalSocketService {
 
     _socket!.on('pago_exitoso', (data) {
       debugPrint('GlobalSocket: pago_exitoso event received: $data');
-      // El SnackBar global aquí es un fallback para cuando el usuario
-      // no está en la pantalla de pago (ej. el dueño del garaje).
-      // La pantalla PaymentUploadScreen tiene su propio listener local
-      // que dispara el pop; ambos pueden coexistir sin conflicto.
-      _showSnackbar(
-        data['mensaje'] ?? '✅ ¡Pago Completado Exitosamente!',
-        isSuccess: true,
-      );
+      // BUG-05 fix: NO mostrar SnackBar global para pago_exitoso.
+      // La pantalla PaymentUploadScreen ya tiene su propio listener local
+      // que muestra el SnackBar y hace context.pop().
+      // El dueno del garaje recibe su notificacion por el canal 'new_reservation_request'
+      // o 'garage_approved' segun el flujo del backend.
+      // Mostrar ambos causaria doble SnackBar simultaneo para el comprador.
     });
 
     _socket!.onDisconnect((_) {

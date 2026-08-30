@@ -9,6 +9,7 @@ class UserModel {
   final String? dniFotoUrl;
   final String? selfieUrl;
   final String? telefono;
+  final String? urlFotoPerfil; // Avatar / foto de perfil
 
   const UserModel({
     required this.id,
@@ -21,6 +22,7 @@ class UserModel {
     this.dniFotoUrl,
     this.selfieUrl,
     this.telefono,
+    this.urlFotoPerfil,
   });
 
   bool get isVerified => estaVerificado == "VERIFICADO";
@@ -41,6 +43,7 @@ class UserModel {
       dniFotoUrl: json['dni_foto_url'],
       selfieUrl: json['selfie_url'],
       telefono: json['telefono'],
+      urlFotoPerfil: json['url_foto_perfil'],
     );
   }
 
@@ -54,6 +57,7 @@ class UserModel {
         'dni_foto_url': dniFotoUrl,
         'selfie_url': selfieUrl,
         'telefono': telefono,
+        'url_foto_perfil': urlFotoPerfil,
       };
 
   UserModel copyWith({
@@ -67,6 +71,7 @@ class UserModel {
     String? dniFotoUrl,
     String? selfieUrl,
     String? telefono,
+    String? urlFotoPerfil,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -79,6 +84,7 @@ class UserModel {
       dniFotoUrl: dniFotoUrl ?? this.dniFotoUrl,
       selfieUrl: selfieUrl ?? this.selfieUrl,
       telefono: telefono ?? this.telefono,
+      urlFotoPerfil: urlFotoPerfil ?? this.urlFotoPerfil,
     );
   }
 }

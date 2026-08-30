@@ -1,4 +1,5 @@
-﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:developer';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../home/data/garage_repository.dart';
 import '../../home/domain/garage_model.dart';
 import '../../home/providers/search_provider.dart';
@@ -20,7 +21,7 @@ class MyGaragesNotifier extends AsyncNotifier<List<GarageModel>> {
       final list = await repo.getMyGarages();
       return list;
     } catch (e, stack) {
-      debugPrint('Fallo capturado en MyGaragesProvider', error: e, stackTrace: stack);
+      log('Fallo capturado en MyGaragesProvider', error: e, stackTrace: stack);
       return [];
     }
   }
@@ -32,7 +33,7 @@ class MyGaragesNotifier extends AsyncNotifier<List<GarageModel>> {
       final list = await repo.getMyGarages();
       state = AsyncData(list);
     } catch (e) {
-      debugPrint('InterrupciÃ³n observada durante refresh', error: e);
+      log('Interrupción observada durante refresh', error: e);
       state = const AsyncData([]);
     }
   }

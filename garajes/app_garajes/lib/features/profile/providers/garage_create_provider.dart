@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/theme/app_theme.dart';
 import 'package:http_parser/http_parser.dart';
 import '../../home/data/garage_repository.dart';
 import '../../home/domain/create_garage_request.dart';
@@ -290,7 +291,7 @@ final garageCreateProvider =
 
 // Convenience colors (no deps)
 Color dayColor(bool selected) =>
-    selected ? const Color(0xFF5B4AF7) : const Color(0xFFE5E7EB);
+    selected ? AppTheme.primary : const Color(0xFFE2E8F0);
 
 Color dayTextColor(bool selected) =>
-    selected ? Colors.white : const Color(0xFF0F0E17);
+    selected ? Colors.white : AppTheme.textPrimary;

@@ -79,12 +79,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) context.go(AppRoutes.modeSelection);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: AppTheme.error,
-          ),
-        );
+        // BUG-07 fix: ignorar silenciosamente la cancelacion del popup de Google
+        // (el usuario lo cerro voluntariamente — no es un error real).
+        final msg = e.toString().toLowerCase();
+        final isUserCancellation = msg.contains('popup_closed') ||
+            msg.contains('sign_in_cancelled') ||
+            msg.contains('network_error') ||
+            msg.contains('canceled');
+        if (!isUserCancellation) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('No se pudo iniciar sesión con Google. Intenta de nuevo.'),
+              backgroundColor: AppTheme.error,
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _googleLoading = false);

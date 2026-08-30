@@ -225,7 +225,7 @@ class _GarageCard extends StatelessWidget {
                     Expanded(
                       child: _StatChip(
                         icon: Icons.calendar_month_outlined,
-                        color: const Color(0xFF5B4AF7),
+                        color: AppTheme.primary,
                         label: 'Próximas',
                         value: '0 Reservas',
                       ),
@@ -234,7 +234,7 @@ class _GarageCard extends StatelessWidget {
                     Expanded(
                       child: _StatChip(
                         icon: Icons.monetization_on_outlined,
-                        color: const Color(0xFF10B981),
+                        color: AppTheme.secondary,
                         label: 'Ingresos',
                         value:
                             '\$${garage.precioPorHora.toStringAsFixed(0)}+',

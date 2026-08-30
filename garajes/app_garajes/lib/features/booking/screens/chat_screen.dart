@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -47,8 +47,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _showPaymentModal = false;
   bool _payLoading = false;
   String _payMethod = 'qr';
-  bool _isInitLoaded = false;
-
   bool _isLoadingRes = true;
   ReservationModel? _reservation;
 
@@ -59,7 +57,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     debugPrint('[ChatScreen] initState STARTING');
     
     _loadReservation().then((_) => _loadMessages());
-    _setupSocketListeners();
+    _setupSocketListeners().catchError((e) {
+      debugPrint('[ChatScreen] Error al configurar socket: $e');
+    });
 
     _messages.add(ChatMessage(
       content:
@@ -117,7 +117,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               attachmentKey: attachmentKey,
             ));
           }
-          _isInitLoaded = true;
         });
         _scrollToBottom();
       }
@@ -128,11 +127,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<void> _setupSocketListeners() async {
     final service = ref.read(globalSocketProvider);
-    await service.connect();
-    
+    // El socket ya está conectado por GlobalSocketService vía authProvider.
+    // NO llamar service.connect() — ese método no existe.
     _socket = service.socket;
     if (_socket == null) {
-      debugPrint('[ChatScreen] Error: el Socket Global no estÃ¡ disponible');
+      debugPrint('[ChatScreen] Error: el Socket Global no está disponible');
       return;
     }
 
@@ -326,7 +325,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     debugPrint('[ChatScreen] MyID: $myId, OwnerID: $ownerId, RenterID: $renterId, isOwner: $isPropietarioOfRes, isSolicitante: $isSolicitante');
 
     final otherName = isPropietarioOfRes ? _reservation?.renterName : _reservation?.ownerName;
-    final roleText = isPropietarioOfRes ? 'el Solicitante' : 'el Propietario';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),

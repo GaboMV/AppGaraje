@@ -1,4 +1,6 @@
-﻿class ServicioModel {
+import 'package:flutter/foundation.dart';
+
+class ServicioModel {
   final String id;
   final String nombre;
   final double precio;
@@ -136,7 +138,7 @@ class GarageModel {
         tieneMesa: json['tiene_mesa'] ?? false,
       );
     } catch (e, stack) {
-      debugPrint('Inconsistencia en serializaciÃ³n de GarageModel', error: e, stackTrace: stack);
+      debugPrint('Inconsistencia en serialización de GarageModel. Error: $e\nStackTrace: $stack');
       debugPrint('Volcado JSON adjunto: $json');
       rethrow;
     }
