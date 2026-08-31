@@ -129,7 +129,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             if (authState.valueOrNull?.isPropietario == true)
                               IconButton(
                                 icon: const Icon(Icons.dashboard_customize_rounded, color: AppTheme.primary),
-                                onPressed: () => context.push(AppRoutes.hostDashboard),
+                                onPressed: () => context.push(AppRoutes.myGarages),
                                 tooltip: 'Administrar mis garajes',
                               ),
                             GestureDetector(
@@ -434,8 +434,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                     ) ?? const SizedBox.shrink(),
-                    // Explicit Search Marker
-                    if (filters.isExplicitLocation && filters.lat != null && filters.lng != null)
+                    // Center Search Marker
+                    if (filters.lat != null && filters.lng != null)
                       MarkerLayer(
                         markers: [
                           Marker(
@@ -550,7 +550,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     SearchFilters(
                                       lat: currentFilters.lat,
                                       lng: currentFilters.lng,
-                                      isExplicitLocation: currentFilters.isExplicitLocation,
+                                      isExplicitLocation: false,
                                       radius: 5.0,
                                     ),
                                   );
@@ -574,7 +574,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       color: Colors.white, size: 14),
                                   SizedBox(width: 4),
                                   Text(
-                                    'Limpiar filtros y pin',
+                                    'Limpiar filtros',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
@@ -776,79 +776,156 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
             const Text('Buscar localidad',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            TextField(
-              controller: ctrl,
-              autofocus: true,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Ej. La Paz, Lima...',
-                prefixIcon: const Icon(Icons.location_city_rounded),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppTheme.border),
-                ),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
-                  onPressed: () => ctrl.clear(),
-                ),
-              ),
-              onSubmitted: (val) async {
-                if (val.trim().isEmpty) return;
-                FocusScope.of(context).unfocus();
-                
-                // Show loading indicator in dialog or handle loading state natively
+            SizedBox(
+              width: double.infinity,
+              child: Autocomplete<Map<String, dynamic>>(
+                initialValue: TextEditingValue(text: ctrl.text),
+              optionsBuilder: (TextEditingValue textEditingValue) async {
+                if (textEditingValue.text.trim().isEmpty) {
+                  return const Iterable<Map<String, dynamic>>.empty();
+                }
                 try {
                   final dio = Dio();
                   final res = await dio.get('https://nominatim.openstreetmap.org/search', queryParameters: {
-                    'q': val,
+                    'q': textEditingValue.text,
                     'format': 'json',
-                    'limit': 1,
+                    'limit': 5,
                     'countrycodes': 'bo',
                   }, options: Options(headers: {'User-Agent': 'GarajesApp/1.0'}));
                   
-                  if (res.data != null && res.data is List && res.data.isNotEmpty) {
-                    final lat = double.parse(res.data[0]['lat'].toString());
-                    final lon = double.parse(res.data[0]['lon'].toString());
-                    
-                    if (mounted) Navigator.pop(ctx);
-                    
-                    final latLng = LatLng(lat, lon);
-                    ref.read(searchProvider.notifier).applyFilters(
-                          curFilters.copyWith(
-                            lat: latLng.latitude,
-                            lng: latLng.longitude,
-                            ubicacion: val,
-                            isExplicitLocation: true,
-                            radius: curFilters.radius ?? 5.0,
-                          ),
-                        );
-                    _mapController.move(latLng, 13);
-                  } else {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('No pudimos encontrar esa ubicación. Intenta con otra palabra.'),
-                          backgroundColor: AppTheme.error,
-                        ),
-                      );
-                    }
+                  if (res.data != null && res.data is List) {
+                    return (res.data as List).map((e) => e as Map<String, dynamic>).toList();
                   }
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('No pudimos encontrar esa ubicación. Intenta con otra palabra.'),
-                        backgroundColor: AppTheme.error,
+                  // Ignores network errors while typing to avoid spamming the UI
+                }
+                return const Iterable<Map<String, dynamic>>.empty();
+              },
+              displayStringForOption: (option) => option['display_name'].toString(),
+              onSelected: (option) {
+                final lat = double.parse(option['lat'].toString());
+                final lon = double.parse(option['lon'].toString());
+                final name = option['display_name'].toString();
+                
+                if (mounted) Navigator.pop(ctx);
+                
+                final latLng = LatLng(lat, lon);
+                ref.read(searchProvider.notifier).applyFilters(
+                      curFilters.copyWith(
+                        lat: latLng.latitude,
+                        lng: latLng.longitude,
+                        ubicacion: name,
+                        isExplicitLocation: true,
+                        radius: curFilters.radius ?? 5.0,
                       ),
                     );
-                  }
-                }
+                _mapController.move(latLng, 13);
               },
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  autofocus: true,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Ej. La Paz, Lima...',
+                    prefixIcon: const Icon(Icons.location_city_rounded),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppTheme.border),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
+                      onPressed: () => controller.clear(),
+                    ),
+                  ),
+                  onSubmitted: (val) async {
+                    if (val.trim().isEmpty) return;
+                    // Fallback to manual search if they don't select an autocomplete option
+                    try {
+                      final dio = Dio();
+                      final res = await dio.get('https://nominatim.openstreetmap.org/search', queryParameters: {
+                        'q': val,
+                        'format': 'json',
+                        'limit': 1,
+                        'countrycodes': 'bo',
+                      }, options: Options(headers: {'User-Agent': 'GarajesApp/1.0'}));
+                      
+                      if (res.data != null && res.data is List && res.data.isNotEmpty) {
+                        final lat = double.parse(res.data[0]['lat'].toString());
+                        final lon = double.parse(res.data[0]['lon'].toString());
+                        final name = res.data[0]['display_name'].toString();
+                        
+                        if (mounted) Navigator.pop(ctx);
+                        
+                        final latLng = LatLng(lat, lon);
+                        ref.read(searchProvider.notifier).applyFilters(
+                              curFilters.copyWith(
+                                lat: latLng.latitude,
+                                lng: latLng.longitude,
+                                ubicacion: name,
+                                isExplicitLocation: true,
+                                radius: curFilters.radius ?? 5.0,
+                              ),
+                            );
+                        _mapController.move(latLng, 13);
+                      } else {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('No pudimos encontrar esa ubicación. Por favor, selecciona una de las sugerencias o intenta con otra palabra.'),
+                              backgroundColor: AppTheme.error,
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No pudimos encontrar esa ubicación. Por favor, selecciona una de las sugerencias o intenta con otra palabra.'),
+                            backgroundColor: AppTheme.error,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                );
+              },
+              optionsViewBuilder: (context, onSelected, options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4.0,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      constraints: BoxConstraints(
+                         maxHeight: 250, 
+                         maxWidth: MediaQuery.of(context).size.width - 40
+                      ),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final option = options.elementAt(index);
+                          return ListTile(
+                            leading: const Icon(Icons.location_on_outlined, color: AppTheme.primary),
+                            title: Text(option['display_name'].toString(), style: const TextStyle(fontSize: 14)),
+                            onTap: () => onSelected(option),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
             ),
             const SizedBox(height: 10),
             TextButton.icon(

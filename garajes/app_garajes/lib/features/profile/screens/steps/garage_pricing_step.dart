@@ -233,11 +233,12 @@ class _GaragePricingStepState extends ConsumerState<GaragePricingStep> {
           fontWeight: FontWeight.w700,
           color: AppTheme.textSecondary.withOpacity(0.4),
         ),
-        prefixIcon: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text('\$', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppTheme.textSecondary)),
+        prefixText: 'Bs. ',
+        prefixStyle: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          color: AppTheme.textSecondary,
         ),
-        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppTheme.border),
@@ -267,195 +268,69 @@ class _GaragePricingStepState extends ConsumerState<GaragePricingStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Define tu oferta',
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 22),
-          ),
+          const Text('Define tu oferta', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 22)),
           const SizedBox(height: 4),
-          const Text(
-            'Establece las modalidades de cobro y los servicios que incluye tu garaje.',
-            style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
-          ),
+          const Text('Establece las modalidades de cobro y los servicios que incluye tu garaje.', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
           const SizedBox(height: 24),
-
-          // --- Cobro por Hora ---
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _isHourlyEnabled ? AppTheme.primary : AppTheme.border, width: _isHourlyEnabled ? 1.5 : 1.0),
-              boxShadow: _isHourlyEnabled ? [
-                BoxShadow(color: AppTheme.primary.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
-              ] : null,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SwitchListTile(
-                  title: const Text('Cobro por Hora', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  subtitle: const Text('Permite alquilar tu espacio por fracciones de hora.', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                  value: _isHourlyEnabled,
-                  onChanged: (val) => setState(() => _isHourlyEnabled = val),
-                  activeColor: AppTheme.primary,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                if (_isHourlyEnabled) ...[
-                  const SizedBox(height: 12),
-                  const Text('Precio por hora', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 8),
-                  _buildPriceInput(_precioHoraCtrl, 'Precio por hora', 'Bs./h'),
-                ]
-              ],
-            ),
+          SwitchListTile(
+            title: const Text('Cobro por Hora', style: TextStyle(fontWeight: FontWeight.w700)),
+            value: _isHourlyEnabled,
+            onChanged: (v) => setState(() => _isHourlyEnabled = v),
           ),
-          
+          if (_isHourlyEnabled)
+            SizedBox(
+              width: double.infinity,
+              child: _buildPriceInput(_precioHoraCtrl, '', 'Bs./h'),
+            ),
           const SizedBox(height: 16),
-          
-          // --- Cobro por Jornada ---
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _isDailyEnabled ? AppTheme.primary : AppTheme.border, width: _isDailyEnabled ? 1.5 : 1.0),
-              boxShadow: _isDailyEnabled ? [
-                BoxShadow(color: AppTheme.primary.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
-              ] : null,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SwitchListTile(
-                  title: const Text('Cobro por Jornada (Día)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  subtitle: const Text('Establece un precio fijo para todo el día y su horario.', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                  value: _isDailyEnabled,
-                  onChanged: (val) => setState(() => _isDailyEnabled = val),
-                  activeColor: AppTheme.primary,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                if (_isDailyEnabled) ...[
-                  const SizedBox(height: 12),
-                  const Text('Precio por jornada completa', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 8),
-                  _buildPriceInput(_precioDiaCtrl, 'Precio por jornada', 'Bs./día'),
-                  
-                  const SizedBox(height: 20),
-                  const Text('Horario de la jornada', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => _selectTime(true),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: AppTheme.background,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.border),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Hora Inicio', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.access_time_rounded, size: 16, color: AppTheme.primary),
-                                    const SizedBox(width: 8),
-                                    Text(_horaInicio.format(context), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => _selectTime(false),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: AppTheme.background,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppTheme.border),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('Hora Fin', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.access_time_rounded, size: 16, color: AppTheme.primary),
-                                    const SizedBox(width: 8),
-                                    Text(_horaFin.format(context), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  )
-                ]
-              ],
-            ),
+          SwitchListTile(
+            title: const Text('Cobro por Jornada', style: TextStyle(fontWeight: FontWeight.w700)),
+            value: _isDailyEnabled,
+            onChanged: (v) => setState(() => _isDailyEnabled = v),
           ),
-          const SizedBox(height: 28),
-
-          // --- Servicios Incluidos ---
+          if (_isDailyEnabled) ...[
+            SizedBox(
+              width: double.infinity,
+              child: _buildPriceInput(_precioDiaCtrl, '', 'Bs./día'),
+            ),
+            const SizedBox(height: 16),
+            const Text('Hora de inicio', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _selectTime(true),
+                child: Text(_horaInicio.format(context)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text('Hora de fin', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary)),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _selectTime(false),
+                child: Text(_horaFin.format(context)),
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
           const Text(
             'SERVICIOS INCLUIDOS',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textSecondary,
-              letterSpacing: 1.2,
-            ),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textSecondary, letterSpacing: 1.2),
           ),
           const SizedBox(height: 12),
-          _ServiceTile(
-            icon: Icons.wifi_rounded,
-            label: 'Wifi',
-            subtitle: 'Internet de alta velocidad',
-            value: _wifi,
-            onChanged: (v) => setState(() => _wifi = v),
-          ),
+          _ServiceTile(icon: Icons.wifi_rounded, label: 'Wifi', subtitle: 'Internet de alta velocidad', value: _wifi, onChanged: (v) => setState(() => _wifi = v)),
           const Divider(height: 1, color: AppTheme.border),
-          _ServiceTile(
-            icon: Icons.wc_rounded,
-            label: 'Baño',
-            subtitle: 'Acceso a sanitario',
-            value: _bano,
-            onChanged: (v) => setState(() => _bano = v),
-          ),
+          _ServiceTile(icon: Icons.wc_rounded, label: 'Baño', subtitle: 'Acceso a sanitario', value: _bano, onChanged: (v) => setState(() => _bano = v)),
           const Divider(height: 1, color: AppTheme.border),
-          _ServiceTile(
-            icon: Icons.electrical_services_rounded,
-            label: 'Electricidad',
-            subtitle: 'Tomas de corriente disponibles',
-            value: _electricidad,
-            onChanged: (v) => setState(() => _electricidad = v),
-          ),
-
+          _ServiceTile(icon: Icons.electrical_services_rounded, label: 'Electricidad', subtitle: 'Tomas de corriente disponibles', value: _electricidad, onChanged: (v) => setState(() => _electricidad = v)),
           const SizedBox(height: 28),
-          
+
           // --- Servicios Extra Cobrados ---
           const Text(
             'SERVICIOS EXTRA (COBRADOS)',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textSecondary,
-              letterSpacing: 1.2,
-            ),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppTheme.textSecondary, letterSpacing: 1.2),
           ),
           const SizedBox(height: 12),
           if (_serviciosExtra.isEmpty)
@@ -481,25 +356,29 @@ class _GaragePricingStepState extends ConsumerState<GaragePricingStep> {
                 ),
               );
             }).toList(),
-            
+
           const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: _showAddServiceDialog,
-            icon: const Icon(Icons.add_circle_outline_rounded),
-            label: const Text('Añadir servicio extra'),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: AppTheme.primary, style: BorderStyle.solid),
-              foregroundColor: AppTheme.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _showAddServiceDialog,
+              icon: const Icon(Icons.add_circle_outline_rounded),
+              label: const Text('Añadir servicio extra'),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppTheme.primary),
+                foregroundColor: AppTheme.primary,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
           ),
-
           const SizedBox(height: 36),
-
-          ElevatedButton.icon(
-            onPressed: _save,
-            icon: const Icon(Icons.arrow_forward_rounded),
-            label: const Text('Guardar y Continuar'),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _save,
+              icon: const Icon(Icons.arrow_forward_rounded),
+              label: const Text('Guardar y Continuar'),
+            ),
           ),
         ],
       ),

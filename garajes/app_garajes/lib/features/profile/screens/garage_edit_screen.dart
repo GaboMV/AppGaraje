@@ -10,8 +10,6 @@ import '../../../core/constants/api_constants.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../home/domain/garage_model.dart';
 import '../providers/my_garages_provider.dart';
-import '../../auth/domain/user_model.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../../home/data/garage_repository.dart';
 import '../../home/providers/search_provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -397,12 +395,12 @@ class _GarageEditScreenState extends ConsumerState<GarageEditScreen> {
           onPressed: () => context.pop(),
         ),
       ),
-      body: _isDeleting
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+        body: _isDeleting
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   // ── Image gallery ─────────────────────────────────────────
                   RepaintBoundary(
                     child: (images.isNotEmpty)
@@ -424,24 +422,30 @@ class _GarageEditScreenState extends ConsumerState<GarageEditScreen> {
                       children: [
                         const _FieldLabel('Nombre del Garaje'),
                         const SizedBox(height: 8),
-                        TextField(
-                          controller: _nombreCtrl,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: const InputDecoration(
-                            hintText: 'Ej. Garaje Centro Histórico',
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextField(
+                            controller: _nombreCtrl,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: const InputDecoration(
+                              hintText: 'Ej. Garaje Centro Histórico',
+                            ),
                           ),
                         ),
                         const SizedBox(height: 20),
 
                         const _FieldLabel('Descripción'),
                         const SizedBox(height: 8),
-                        TextField(
-                          controller: _descCtrl,
-                          maxLines: 4,
-                          maxLength: 500,
-                          decoration: const InputDecoration(
-                            hintText: 'Describe tu espacio...',
-                            alignLabelWithHint: true,
+                        SizedBox(
+                          width: double.infinity,
+                          child: TextField(
+                            controller: _descCtrl,
+                            maxLines: 4,
+                            maxLength: 500,
+                            decoration: const InputDecoration(
+                              hintText: 'Describe tu espacio...',
+                              alignLabelWithHint: true,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -449,106 +453,108 @@ class _GarageEditScreenState extends ConsumerState<GarageEditScreen> {
                         const _SectionHeader('Modalidad de Cobro'),
                         const SizedBox(height: 12),
                         
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: _isHourlyEnabled ? AppTheme.primary : AppTheme.border, width: _isHourlyEnabled ? 1.5 : 1.0),
-                            boxShadow: _isHourlyEnabled ? [
-                              BoxShadow(color: AppTheme.primary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
-                            ] : null,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SwitchListTile(
-                                title: const Text('Cobro por Hora', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                                subtitle: const Text('Permite alquilar tu espacio por fracciones de hora.', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                                value: _isHourlyEnabled,
-                                onChanged: (val) => setState(() => _isHourlyEnabled = val),
-                                activeColor: AppTheme.primary,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                              if (_isHourlyEnabled) ...[
-                                const SizedBox(height: 12),
-                                const Text('Precio por hora', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
-                                const SizedBox(height: 8),
-                                _PriceInput(controller: _precioHoraCtrl, suffix: 'Bs./h'),
-                              ]
-                            ],
+                        SizedBox(
+                          width: double.infinity,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: _isHourlyEnabled ? AppTheme.primary : AppTheme.border, width: _isHourlyEnabled ? 1.5 : 1.0),
+                              boxShadow: _isHourlyEnabled ? [
+                                BoxShadow(color: AppTheme.primary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+                              ] : null,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SwitchListTile(
+                                  title: const Text('Cobro por Hora', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                                  subtitle: const Text('Permite alquilar tu espacio por fracciones de hora.', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                                  value: _isHourlyEnabled,
+                                  onChanged: (val) => setState(() => _isHourlyEnabled = val),
+                                  activeColor: AppTheme.primary,
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                if (_isHourlyEnabled) ...[
+                                  const SizedBox(height: 12),
+                                  const Text('Precio por hora', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+                                  const SizedBox(height: 8),
+                                  SizedBox(width: double.infinity, child: _PriceInput(controller: _precioHoraCtrl, suffix: 'Bs./h')),
+                                ]
+                              ],
+                            ),
                           ),
                         ),
                         
                         const SizedBox(height: 16),
                         
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: _isDailyEnabled ? AppTheme.primary : AppTheme.border, width: _isDailyEnabled ? 1.5 : 1.0),
-                            boxShadow: _isDailyEnabled ? [
-                              BoxShadow(color: AppTheme.primary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
-                            ] : null,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SwitchListTile(
-                                title: const Text('Cobro por Jornada (Día)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                                subtitle: const Text('Establece un precio fijo para todo el día y su horario.', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                                value: _isDailyEnabled,
-                                onChanged: (val) => setState(() => _isDailyEnabled = val),
-                                activeColor: AppTheme.primary,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                              if (_isDailyEnabled) ...[
-                                const SizedBox(height: 12),
-                                const Text('Precio por jornada completa', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
-                                const SizedBox(height: 8),
-                                _PriceInput(controller: _precioDiaCtrl, suffix: 'Bs./día'),
-                                
-                                const SizedBox(height: 20),
-                                const Text('Horario de la jornada', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () => _pickJourneyTime(true),
-                                        icon: const Icon(Icons.access_time, size: 16),
-                                        label: Text('De: ${_formatTime(_horaInicio)}'),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
-                                          side: const BorderSide(color: AppTheme.border),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () => _pickJourneyTime(false),
-                                        icon: const Icon(Icons.access_time_filled, size: 16),
-                                        label: Text('A: ${_formatTime(_horaFin)}'),
-                                        style: OutlinedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
-                                          side: const BorderSide(color: AppTheme.border),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                        SizedBox(
+                          width: double.infinity,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: _isDailyEnabled ? AppTheme.primary : AppTheme.border, width: _isDailyEnabled ? 1.5 : 1.0),
+                              boxShadow: _isDailyEnabled ? [
+                                BoxShadow(color: AppTheme.primary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+                              ] : null,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SwitchListTile(
+                                  title: const Text('Cobro por Jornada (Día)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                                  subtitle: const Text('Establece un precio fijo para todo el día y su horario.', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                                  value: _isDailyEnabled,
+                                  onChanged: (val) => setState(() => _isDailyEnabled = val),
+                                  activeColor: AppTheme.primary,
+                                  contentPadding: EdgeInsets.zero,
                                 ),
-                              ]
-                            ],
+                                if (_isDailyEnabled) ...[
+                                  const SizedBox(height: 12),
+                                  const Text('Precio por jornada completa', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+                                  const SizedBox(height: 8),
+                                  SizedBox(width: double.infinity, child: _PriceInput(controller: _precioDiaCtrl, suffix: 'Bs./día')),
+                                  const SizedBox(height: 20),
+                                  const Text('Horario de la jornada', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textSecondary)),
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => _pickJourneyTime(true),
+                                      icon: const Icon(Icons.access_time, size: 16),
+                                      label: Text('Inicio: ${_formatTime(_horaInicio)}'),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        side: const BorderSide(color: AppTheme.border),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () => _pickJourneyTime(false),
+                                      icon: const Icon(Icons.access_time_filled, size: 16),
+                                      label: Text('Fin: ${_formatTime(_horaFin)}'),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        side: const BorderSide(color: AppTheme.border),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                    ),
+                                  ),
+                                ]
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
 
                         Container(
-                          width: double.infinity,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -558,19 +564,24 @@ class _GarageEditScreenState extends ConsumerState<GarageEditScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text('Días activos y excepciones', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                                  const SizedBox(height: 4),
-                                  Text('${_garage.diasHabituales.length} días hab., ${_garage.diasBloqueados.length} excep.', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                                ],
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Días activos y excepciones', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                    const SizedBox(height: 4),
+                                    Text('${_garage.diasHabituales.length} días hab., ${_garage.diasBloqueados.length} excep.', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                                  ],
+                                ),
                               ),
+                              const SizedBox(width: 8),
                               OutlinedButton(
                                 onPressed: () {
                                   Navigator.push(context, MaterialPageRoute(builder: (_) => GarageAvailabilityEditScreen(garage: _garage)));
                                 },
                                 style: OutlinedButton.styleFrom(
+                                  minimumSize: Size.zero,
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
                                 child: const Text('Modificar', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
@@ -655,7 +666,7 @@ class _GarageEditScreenState extends ConsumerState<GarageEditScreen> {
                         const SizedBox(height: 32),
 
                         SizedBox(
-                          width: double.maxFinite,
+                          width: double.infinity,
                           child: ElevatedButton(
                             onPressed: _isLoading || _isDeleting ? null : _save,
                             child: _isLoading
@@ -682,7 +693,7 @@ class _GarageEditScreenState extends ConsumerState<GarageEditScreen> {
                         ),
                         const SizedBox(height: 8),
                         SizedBox(
-                          width: double.maxFinite,
+                          width: double.infinity,
                           child: OutlinedButton.icon(
                             onPressed:
                                 _isDeleting || _isLoading ? null : _deleteGarage,
@@ -787,7 +798,11 @@ class _GallerySection extends StatelessWidget {
                 onPressed: onAddImage,
                 icon: const Icon(Icons.add_a_photo_outlined, size: 18),
                 label: const Text('Añadir'),
-                style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.primary,
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
               ),
             ],
           ),
@@ -880,59 +895,39 @@ class _PriceInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-          decoration: BoxDecoration(
-            color: AppTheme.background,
-            border: Border.all(color: AppTheme.border),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(12),
-              bottomLeft: Radius.circular(12),
-            ),
-          ),
-          child: const Text('\$',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      decoration: InputDecoration(
+        prefixText: '\$ ',
+        prefixStyle: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+          color: AppTheme.textPrimary,
         ),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            decoration: InputDecoration(
-              hintText: '0',
-              suffixText: suffix,
-              suffixStyle: const TextStyle(
-                  fontSize: 13,
-                  color: AppTheme.textSecondary,
-                  fontWeight: FontWeight.w600),
-              border: const OutlineInputBorder(
-                borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-                borderSide: BorderSide(color: AppTheme.border),
-              ),
-              enabledBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-                borderSide: BorderSide(color: AppTheme.border),
-              ),
-              focusedBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.only(
-                  topRight: Radius.circular(12),
-                  bottomRight: Radius.circular(12),
-                ),
-                borderSide: BorderSide(color: AppTheme.primary, width: 2),
-              ),
-            ),
-          ),
+        hintText: '0',
+        suffixText: suffix,
+        suffixStyle: const TextStyle(
+          fontSize: 13,
+          color: AppTheme.textSecondary,
+          fontWeight: FontWeight.w600,
         ),
-      ],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppTheme.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppTheme.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppTheme.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
     );
   }
 }
@@ -953,7 +948,7 @@ class _NewServiceInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
@@ -967,14 +962,15 @@ class _NewServiceInput extends StatelessWidget {
               controller: nombreCtrl,
               decoration: const InputDecoration(
                 hintText: 'Ej. Lavado Básico',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
                 isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppTheme.border),
+                ),
               ),
             ),
           ),
-          Container(width: 1, height: 24, color: AppTheme.border),
+          const SizedBox(width: 8),
           Expanded(
             flex: 1,
             child: TextField(
@@ -984,18 +980,22 @@ class _NewServiceInput extends StatelessWidget {
               textAlign: TextAlign.center,
               decoration: const InputDecoration(
                 hintText: 'Precio',
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
                 isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppTheme.border),
+                ),
               ),
             ),
           ),
-          IconButton(
+          const SizedBox(width: 8),
+          IconButton.filled(
             onPressed: isLoading ? null : onAdd,
-            icon: const Icon(Icons.add_circle_rounded,
-                color: AppTheme.primary, size: 28),
-            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.add, size: 20),
+            style: IconButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              foregroundColor: Colors.white,
+            ),
           ),
         ],
       ),
@@ -1036,7 +1036,7 @@ class _NavButton extends StatelessWidget {
         onPressed: onTap,
         icon: Icon(icon, color: onTap == null ? Colors.grey : AppTheme.primary, size: 28),
         style: IconButton.styleFrom(
-          backgroundColor: AppTheme.primaryLight.withOpacity(0.5),
+          backgroundColor: AppTheme.primaryLight.withValues(alpha: 0.5),
           padding: const EdgeInsets.all(4),
         ),
       );

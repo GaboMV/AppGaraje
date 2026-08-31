@@ -587,16 +587,12 @@ class _ErrorState extends StatelessWidget {
 class _GarageListShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: List.generate(
-          3,
-          (_) => Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: _ShimmerBox(height: 260, borderRadius: 18),
-          ),
-        ),
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+      itemCount: 3,
+      itemBuilder: (_, __) => const Padding(
+        padding: EdgeInsets.only(bottom: 16),
+        child: _ShimmerBox(height: 260, borderRadius: 18),
       ),
     );
   }

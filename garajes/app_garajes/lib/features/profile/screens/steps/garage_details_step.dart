@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart' as fp;
 import '../../../../core/theme/app_theme.dart';
 import '../../providers/garage_create_provider.dart';
 
@@ -82,25 +83,24 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
   }
 
   Future<void> _pickDoc() async {
-    final picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: _kImageQuality,
-      maxWidth: _kMaxDimension,
-      maxHeight: _kMaxDimension,
+    final result = await fp.FilePicker.pickFiles(
+      type: fp.FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'],
     );
-    if (picked != null && mounted) {
-      final fileLength = await picked.length();
-      if (fileLength > (2 * 1024 * 1024)) {
+    if (result != null && result.files.single.path != null && mounted) {
+      final file = File(result.files.single.path!);
+      final fileLength = await file.length();
+      if (fileLength > (5 * 1024 * 1024)) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('La imagen es demasiado pesada.'),
+            content: Text('El documento no puede superar los 5MB.'),
             backgroundColor: AppTheme.error,
           ),
         );
         return;
       }
-      setState(() => _docPath = picked.path);
+      setState(() => _docPath = file.path);
     }
   }
 
@@ -276,12 +276,33 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.file(
-                    File(_docPath!),
-                    fit: BoxFit.cover,
-                    width: 100,
-                    height: 100,
-                  ),
+                  child: _docPath!.toLowerCase().endsWith('.pdf') || _docPath!.toLowerCase().endsWith('.doc') || _docPath!.toLowerCase().endsWith('.docx')
+                      ? Container(
+                          width: 100,
+                          height: 100,
+                          padding: const EdgeInsets.all(4),
+                          color: const Color(0xFFE2E8F0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.insert_drive_file, color: AppTheme.primary, size: 30),
+                              const SizedBox(height: 4),
+                              Text(
+                                _docPath!.split('/').last.split('\\').last,
+                                style: const TextStyle(fontSize: 10, color: AppTheme.primary, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                              ),
+                            ],
+                          ),
+                        )
+                      : Image.file(
+                          File(_docPath!),
+                          fit: BoxFit.cover,
+                          width: 100,
+                          height: 100,
+                        ),
                 ),
                 Positioned(
                   top: -6,
