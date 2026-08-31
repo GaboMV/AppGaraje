@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/notifications_provider.dart';
+import '../../../core/theme/app_theme.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -46,11 +47,11 @@ class NotificationsScreen extends ConsumerWidget {
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
                         tileColor: isUnread
-                            ? Colors.blue.withOpacity(0.1)
+                            ? AppTheme.primaryLight.withOpacity(0.5)
                             : Colors.transparent,
                         leading: CircleAvatar(
                           backgroundColor:
-                              isUnread ? Colors.blue : Colors.grey.shade300,
+                              isUnread ? AppTheme.secondary : Colors.grey.shade300,
                           child: Icon(
                             isUnread
                                 ? Icons.notifications_active

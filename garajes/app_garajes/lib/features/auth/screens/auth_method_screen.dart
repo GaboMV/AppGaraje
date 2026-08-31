@@ -94,7 +94,7 @@ class _AuthMethodScreenState extends ConsumerState<AuthMethodScreen> {
                                   end: Alignment.bottomLeft,
                                   colors: [
                                     AppTheme.primary.withOpacity(0.75),
-                                    Colors.purple.withOpacity(0.4),
+                                    AppTheme.primary.withOpacity(0.4),
                                   ],
                                 ),
                               ),

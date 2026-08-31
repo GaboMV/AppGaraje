@@ -228,10 +228,10 @@ class _BalanceCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AppTheme.primary, Color(0xFF7C3AED)],
+            colors: [AppTheme.primary, AppTheme.primary.withOpacity(0.8)],
           ),
           borderRadius: BorderRadius.circular(24),
           boxShadow: [

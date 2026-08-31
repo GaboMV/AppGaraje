@@ -59,14 +59,47 @@ class MyGaragesScreen extends ConsumerWidget {
         ),
         data: (garages) {
           if (garages.isEmpty) return const _EmptyState();
+          final hasPending = garages.any((g) => !g.estaAprobado);
+          final approvedGarages = garages.where((g) => g.estaAprobado).toList();
+          
           return RefreshIndicator(
             color: AppTheme.primary,
             onRefresh: () => ref.read(myGaragesProvider.notifier).refresh(),
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-              itemCount: garages.length,
+              itemCount: approvedGarages.length + (hasPending ? 1 : 0),
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, i) => _GarageCard(garage: garages[i]),
+              itemBuilder: (context, i) {
+                if (hasPending && i == 0) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      border: Border.all(color: const Color(0xFFF59E0B)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text('Garaje(s) en revisión',
+                                  style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF92400E))),
+                              Text('Tus espacios marcados como pendientes están siendo revisados por nuestro equipo administrativo.',
+                                  style: TextStyle(fontSize: 13, color: Color(0xFFB45309))),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                final garage = approvedGarages[hasPending ? i - 1 : i];
+                return _GarageCard(garage: garage);
+              },
             ),
           );
         },
@@ -188,6 +221,17 @@ class _GarageCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                    ),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        return Switch(
+                          value: garage.disponible,
+                          activeColor: AppTheme.primary,
+                          onChanged: (val) {
+                            ref.read(myGaragesProvider.notifier).toggleGarageStatus(garage.id, val);
+                          },
+                        );
+                      }
                     ),
                     IconButton(
                       icon: const Icon(Icons.more_vert_rounded,

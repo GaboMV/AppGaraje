@@ -76,8 +76,8 @@ class _GarageCreateWizardState extends ConsumerState<GarageCreateWizard> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('¡Garaje publicado exitosamente! 🎉'),
-          backgroundColor: AppTheme.secondary,
+          content: Text('Tu garaje ha sido enviado para su revisión y aprobación. Te avisaremos cuando esté activo.'),
+          backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
       );

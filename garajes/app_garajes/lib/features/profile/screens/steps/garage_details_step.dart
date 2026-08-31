@@ -19,6 +19,7 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
   late final TextEditingController _descCtrl;
   final ImagePicker _picker = ImagePicker();
   List<String> _imagePaths = [];
+  String? _docPath;
 
   // Parámetros de compresión: las fotos de garaje se suben en lote (≤5 imgs).
   // Con quality 50 y 1200×1200 máx cada imagen queda ~200-400 KB.
@@ -32,6 +33,7 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
     _nombreCtrl = TextEditingController(text: state.nombre);
     _descCtrl = TextEditingController(text: state.descripcion);
     _imagePaths = List.from(state.imagenesLocales);
+    _docPath = state.documentoPropiedadLocal;
   }
 
   @override
@@ -51,6 +53,35 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
       );
       return;
     }
+    final picked = await _picker.pickMultiImage(
+      imageQuality: _kImageQuality,
+      maxWidth: _kMaxDimension,
+      maxHeight: _kMaxDimension,
+    );
+    if (picked.isNotEmpty && mounted) {
+      bool hasTooLarge = false;
+      for (var file in picked) {
+        if (_imagePaths.length >= 5) break;
+        final fileLength = await file.length();
+        if (fileLength > (2 * 1024 * 1024)) {
+          hasTooLarge = true;
+          continue;
+        }
+        _imagePaths.add(file.path);
+      }
+      if (hasTooLarge && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Alguna imagen es demasiado pesada incluso después de comprimir y fue omitida.'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+      setState(() {});
+    }
+  }
+
+  Future<void> _pickDoc() async {
     final picked = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: _kImageQuality,
@@ -63,14 +94,18 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('La imagen es demasiado pesada incluso después de comprimir. Por favor, toma la foto desde más lejos o recórtala.'),
+            content: Text('La imagen es demasiado pesada.'),
             backgroundColor: AppTheme.error,
           ),
         );
         return;
       }
-      setState(() => _imagePaths.add(picked.path));
+      setState(() => _docPath = picked.path);
     }
+  }
+
+  void _removeDoc() {
+    setState(() => _docPath = null);
   }
 
   void _removeImage(int index) {
@@ -88,10 +123,20 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
       );
       return;
     }
+    if (_docPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('El documento de propiedad es obligatorio'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     ref.read(garageCreateProvider.notifier).setDetails(
           nombre: nombre,
           descripcion: _descCtrl.text.trim(),
           imagenes: _imagePaths,
+          documentoPropiedad: _docPath,
         );
     widget.onNext();
   }
@@ -186,6 +231,77 @@ class _GarageDetailsStepState extends ConsumerState<GarageDetailsStep> {
               ],
             ),
           ),
+          const SizedBox(height: 24),
+
+          // Documento de Propiedad
+          const _Label('Documento de Propiedad'),
+          const SizedBox(height: 4),
+          Text(
+            'Obligatorio. Título de propiedad, contrato o factura de servicios.',
+            style: TextStyle(
+                fontSize: 12, color: AppTheme.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          if (_docPath == null)
+            GestureDetector(
+              onTap: _pickDoc,
+              child: Container(
+                height: 100,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                      color: AppTheme.primary,
+                      width: 1.5,
+                      style: BorderStyle.solid),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.description_outlined,
+                        color: AppTheme.primary, size: 28),
+                    SizedBox(height: 4),
+                    Text('SUBIR DOCUMENTO',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primary)),
+                  ],
+                ),
+              ),
+            )
+          else
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(_docPath!),
+                    fit: BoxFit.cover,
+                    width: 100,
+                    height: 100,
+                  ),
+                ),
+                Positioned(
+                  top: -6,
+                  right: -6,
+                  child: GestureDetector(
+                    onTap: _removeDoc,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.error,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close_rounded,
+                          color: Colors.white, size: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 24),
 
           ElevatedButton.icon(

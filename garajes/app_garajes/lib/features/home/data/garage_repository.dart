@@ -50,6 +50,8 @@ class GarageRepository {
     }
   }
 
+
+
   Future<List<GarageModel>> getMyGarages() async {
     try {
       final response = await _dio.get(ApiConstants.myGarages);
@@ -66,7 +68,7 @@ class GarageRepository {
   Future<GarageModel> updateGarage(String id, Map<String, dynamic> data) async {
     try {
       final response = await _dio.put('${ApiConstants.garages}/$id', data: data);
-      return GarageModel.fromJson(response.data as Map<String, dynamic>);
+      return GarageModel.fromJson(response.data['garaje'] as Map<String, dynamic>);
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
     }

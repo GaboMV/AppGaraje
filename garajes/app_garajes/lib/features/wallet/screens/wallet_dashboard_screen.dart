@@ -180,10 +180,10 @@ class _HeroBalanceCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppTheme.primary, Color(0xFF7C3AED)],
+          colors: [AppTheme.primary, AppTheme.primary.withOpacity(0.8)],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
@@ -595,7 +595,7 @@ class _LoadingBalanceCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             AppTheme.primary.withOpacity(0.3),
-            const Color(0xFF7C3AED).withOpacity(0.3),
+            AppTheme.primary.withOpacity(0.3),
           ],
         ),
         borderRadius: BorderRadius.circular(24),

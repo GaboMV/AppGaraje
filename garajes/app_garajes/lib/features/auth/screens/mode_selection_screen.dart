@@ -73,11 +73,11 @@ class ModeSelectionScreen extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     const Color(0xFFEFF6FF),
-                    Colors.blue.withOpacity(0.05)
+                    AppTheme.primaryLight.withOpacity(0.5)
                   ],
                 ),
                 icon: Icons.home_work_outlined,
-                iconColor: Colors.blue,
+                iconColor: AppTheme.primary,
                 title: 'Quiero alquilar mi garaje',
                 subtitle: 'Publica tu espacio libre y gana dinero extra.',
               ),

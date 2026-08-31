@@ -205,7 +205,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = widget.reservation.isPending ? Colors.orange : Colors.blue;
+    final statusColor = widget.reservation.isPending ? Colors.orange : AppTheme.primary;
     final statusText = widget.reservation.isPending ? 'NUEVA SOLICITUD' : 'EN NEGOCIACIÓN';
 
     return Card(

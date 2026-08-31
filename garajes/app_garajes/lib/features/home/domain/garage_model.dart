@@ -67,6 +67,8 @@ class GarageModel {
   final bool tieneBano;
   final bool tieneElectricidad;
   final bool tieneMesa;
+  final Set<int> diasHabituales;
+  final Set<DateTime> diasBloqueados;
 
   const GarageModel({
     required this.id,
@@ -92,6 +94,8 @@ class GarageModel {
     this.tieneBano = false,
     this.tieneElectricidad = false,
     this.tieneMesa = false,
+    this.diasHabituales = const {},
+    this.diasBloqueados = const {},
   });
 
   factory GarageModel.fromJson(Map<String, dynamic> json) {
@@ -107,10 +111,32 @@ class GarageModel {
           : [];
 
       final propietario = json['dueno'] ?? json['propietario'];
-      // Buscar ID del dueÃ±o en varias posibles ubicaciones
+      // Buscar ID del dueño en varias posibles ubicaciones
       final String propId = propietario?['id']?.toString() ?? 
                             json['id_dueno']?.toString() ?? 
                             '';
+
+      final Set<int> habituales = {};
+      if (json['horarios_semanales'] is List) {
+        for (var h in json['horarios_semanales']) {
+          if (h['dia_semana'] != null) {
+            habituales.add(int.parse(h['dia_semana'].toString()));
+          }
+        }
+      }
+
+      final Set<DateTime> bloqueados = {};
+      if (json['fechas_bloqueadas'] is List) {
+        for (var b in json['fechas_bloqueadas']) {
+          if (b['fecha'] != null) {
+            final dt = DateTime.tryParse(b['fecha'].toString());
+            if (dt != null) {
+              // Normalize to midnight
+              bloqueados.add(DateTime(dt.year, dt.month, dt.day));
+            }
+          }
+        }
+      }
 
       return GarageModel(
         id: json['id']?.toString() ?? '',
@@ -136,6 +162,8 @@ class GarageModel {
         tieneBano: json['tiene_bano'] ?? false,
         tieneElectricidad: json['tiene_electricidad'] ?? false,
         tieneMesa: json['tiene_mesa'] ?? false,
+        diasHabituales: habituales,
+        diasBloqueados: bloqueados,
       );
     } catch (e, stack) {
       debugPrint('Inconsistencia en serialización de GarageModel. Error: $e\nStackTrace: $stack');

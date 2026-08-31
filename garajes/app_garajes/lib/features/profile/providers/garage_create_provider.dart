@@ -47,8 +47,8 @@ class GarageCreateState {
 
   const GarageCreateState({
     this.step = 0,
-    this.lat = 19.4326,
-    this.lng = -99.1332,
+    this.lat = -16.4897,
+    this.lng = -68.1193,
     this.direccion = '',
     this.referencias = '',
     this.nombre = '',
@@ -217,6 +217,8 @@ class GarageCreateNotifier extends Notifier<GarageCreateState> {
               .join(','),
         'hora_inicio_jornada': state.horaInicioJornada,
         'hora_fin_jornada': state.horaFinJornada,
+        'dias_habituales': state.diasHabituales.join(','),
+        'dias_bloqueados': state.diasBloqueados.map((d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}').join(','),
       };
 
       // Handle private document

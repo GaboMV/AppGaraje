@@ -37,6 +37,32 @@ class MyGaragesNotifier extends AsyncNotifier<List<GarageModel>> {
       state = const AsyncData([]);
     }
   }
+
+  Future<void> toggleGarageStatus(String id, bool isAvailable) async {
+    try {
+      final repo = ref.read(garageRepositoryProvider);
+      final updatedGarage = await repo.updateGarage(id, {'disponible': isAvailable});
+      state = state.whenData((garages) {
+        return garages.map((g) => g.id == id ? updatedGarage : g).toList();
+      });
+    } catch (e) {
+      log('Error toggling garage status', error: e);
+      rethrow;
+    }
+  }
+
+  Future<void> updateGarage(String id, Map<String, dynamic> data) async {
+    try {
+      final repo = ref.read(garageRepositoryProvider);
+      final updatedGarage = await repo.updateGarage(id, data);
+      state = state.whenData((garages) {
+        return garages.map((g) => g.id == id ? updatedGarage : g).toList();
+      });
+    } catch (e) {
+      log('Error updating garage', error: e);
+      rethrow;
+    }
+  }
 }
 
 final myGaragesProvider =

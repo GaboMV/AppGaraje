@@ -37,8 +37,11 @@ class DioClient {
           }
           return handler.next(options);
         },
-        onError: (DioException e, handler) {
-          debugPrint('[DioClient] InterrupciÃ³n operativa en ${e.requestOptions.path}. Estatus de retorno: ${e.response?.statusCode}');
+        onError: (DioException e, handler) async {
+          if (e.response?.statusCode == 401) {
+            await SecureStorageService.clearAll();
+          }
+          debugPrint('[DioClient] Interrupción operativa en ${e.requestOptions.path}. Estatus de retorno: ${e.response?.statusCode}');
           debugPrint('[DioClient] Trama residual: ${e.response?.data}');
           return handler.next(e);
         },

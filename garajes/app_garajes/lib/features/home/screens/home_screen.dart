@@ -108,19 +108,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Hola, $userName',
-                                style: TextStyle(
-                                    color: AppTheme.textSecondary,
-                                    fontSize: 13)),
-                            const Text('Encuentra tu espacio',
-                                style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTheme.textPrimary)),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Hola, $userName',
+                                  style: TextStyle(
+                                      color: AppTheme.textSecondary,
+                                      fontSize: 13)),
+                              const Text('Encuentra tu espacio',
+                                  style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.textPrimary)),
+                            ],
+                          ),
                         ),
                         Row(
                           children: [
@@ -365,6 +367,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   options: MapOptions(
                     initialCenter: initialCenter,
                     initialZoom: 13,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+                    ),
                     onPositionChanged: (camera, hasGesture) {
                       // Only trigger auto-search on map drag if we haven't set an explicit pin
                       if (!ref.read(searchFiltersProvider).isExplicitLocation && hasGesture) {
@@ -448,6 +453,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                   ],
                 ),
+                searchAsync.whenOrNull(
+                  data: (garages) {
+                    if (garages.isEmpty) {
+                      return Positioned(
+                        top: 70, // Below the radius selector
+                        left: 20,
+                        right: 20,
+                        child: Card(
+                          elevation: 4,
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Row(
+                              children: [
+                                Icon(Icons.info_outline, color: AppTheme.primary),
+                                SizedBox(width: 12),
+                                Expanded(child: Text('No hay garajes en esta zona. Intenta ampliar el radio.', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }
+                ) ?? const SizedBox.shrink(),
 
                 // Radius Selector & Clear All (Top of Map)
                 if (filters.isExplicitLocation || filters.fecha != null)
@@ -513,8 +545,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           // General Reset Button
                           GestureDetector(
                             onTap: () {
+                              final currentFilters = ref.read(searchFiltersProvider);
                               ref.read(searchProvider.notifier).applyFilters(
-                                    const SearchFilters(),
+                                    SearchFilters(
+                                      lat: currentFilters.lat,
+                                      lng: currentFilters.lng,
+                                      isExplicitLocation: currentFilters.isExplicitLocation,
+                                      radius: 5.0,
+                                    ),
                                   );
                             },
                             child: Container(
@@ -677,11 +715,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         },
         child: Container(
           decoration: BoxDecoration(
-            color: isOwner ? Colors.green : AppTheme.primary,
+            color: isOwner ? Colors.green : Colors.blue,
             borderRadius: BorderRadius.circular(8),
             boxShadow: [
               BoxShadow(
-                  color: (isOwner ? Colors.green : AppTheme.primary).withOpacity(0.4),
+                  color: (isOwner ? Colors.green : Colors.blue).withValues(alpha: 0.4),
                   blurRadius: 8,
                   offset: const Offset(0, 3))
             ],
@@ -746,6 +784,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             TextField(
               controller: ctrl,
               autofocus: true,
+              textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: 'Ej. La Paz, Lima...',
                 prefixIcon: const Icon(Icons.location_city_rounded),
@@ -760,6 +799,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               onSubmitted: (val) async {
                 if (val.trim().isEmpty) return;
+                FocusScope.of(context).unfocus();
                 
                 // Show loading indicator in dialog or handle loading state natively
                 try {
@@ -769,7 +809,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     'format': 'json',
                     'limit': 1,
                     'countrycodes': 'bo',
-                  });
+                  }, options: Options(headers: {'User-Agent': 'GarajesApp/1.0'}));
                   
                   if (res.data != null && res.data is List && res.data.isNotEmpty) {
                     final lat = double.parse(res.data[0]['lat'].toString());
@@ -791,14 +831,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   } else {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Ubicación no encontrada')),
+                        const SnackBar(
+                          content: Text('No pudimos encontrar esa ubicación. Intenta con otra palabra.'),
+                          backgroundColor: AppTheme.error,
+                        ),
                       );
                     }
                   }
                 } catch (e) {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Error buscando ubicación')),
+                      const SnackBar(
+                        content: Text('No pudimos encontrar esa ubicación. Intenta con otra palabra.'),
+                        backgroundColor: AppTheme.error,
+                      ),
                     );
                   }
                 }
@@ -810,12 +856,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               label: const Text('Limpiar búsqueda', style: TextStyle(color: AppTheme.error)),
               onPressed: () {
                 Navigator.pop(ctx);
+                final currentFilters = ref.read(searchFiltersProvider);
                 ref.read(searchProvider.notifier).applyFilters(
-                      curFilters.copyWith(
-                        ubicacion: null,
-                        isExplicitLocation: false,
-                        radius: null,
-                        lat: null, // Let it reset to user GPS on next refresh or keep map as is
+                      SearchFilters(
+                        lat: currentFilters.lat,
+                        lng: currentFilters.lng,
+                        isExplicitLocation: currentFilters.isExplicitLocation,
+                        radius: 5.0,
                       ),
                     );
               },
